@@ -1,0 +1,102 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+rule_files:
+  - "alert_rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # Flight Control Backend API
+  - job_name: 'flight-control-backend'
+    static_configs:
+      - targets: ['backend:80']
+    metrics_path: '/api/metrics'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    http_config:
+      basic_auth:
+        username: 'prometheus'
+        password: 'SECURE_PROMETHEUS_PASSWORD_HERE'
+
+  # Flight Control Frontend
+  - job_name: 'flight-control-frontend'
+    static_configs:
+      - targets: ['frontend:80']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # PostgreSQL Database
+  - job_name: 'flight-control-postgres'
+    static_configs:
+      - targets: ['postgres:5432']
+    scrape_interval: 30s
+    params:
+      auth_module: [pgbouncer]
+    http_config:
+      basic_auth:
+        username: 'prometheus'
+        password: 'SECURE_PROMETHEUS_PASSWORD_HERE'
+
+  # Redis Cache
+  - job_name: 'flight-control-redis'
+    static_configs:
+      - targets: ['redis:6379']
+    scrape_interval: 30s
+
+  # ADS-B Integration
+  - job_name: 'flight-control-adsb'
+    static_configs:
+      - targets: ['adsb:30003']
+    scrape_interval: 60s
+    metrics_path: '/metrics'
+
+  # Nginx Load Balancer
+  - job_name: 'flight-control-nginx'
+    static_configs:
+      - targets: ['nginx:80']
+    scrape_interval: 30s
+
+  # Node Exporter (System Metrics)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 30s
+
+  # cAdvisor (Container Metrics)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # Elasticsearch
+  - job_name: 'elasticsearch'
+    static_configs:
+      - targets: ['elasticsearch:9200']
+    scrape_interval: 30s
+    metrics_path: '/_prometheus/metrics'
+
+  # Logstash
+  - job_name: 'logstash'
+    static_configs:
+      - targets: ['logstash:9600']
+    scrape_interval: 30s
+    metrics_path: '/_node/stats'
+
+  # Custom Flight Control Metrics
+  - job_name: 'flight-control-custom'
+    static_configs:
+      - targets: ['backend:80']
+    scrape_interval: 60s
+    metrics_path: '/api/custom-metrics'
+    http_config:
+      basic_auth:
+        username: 'prometheus'
+        password: 'SECURE_PROMETHEUS_PASSWORD_HERE'

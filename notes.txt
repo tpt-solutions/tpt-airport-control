@@ -1,0 +1,14 @@
+Found the demo login credentials right in the startup script:
+
+✅ **Simple Demo Default Login:**
+```
+Username: admin
+Password: FlightControl@2026!
+```
+
+This is defined at lines 75-78 in `start-simple-demo.bat`
+
+The demo should be running at:
+`http://localhost:5173`
+
+This is the super admin account with full system access. All demo data is stored locally in an embedded SQLite database at `database/flight_control_demo.db` - no external services required.
