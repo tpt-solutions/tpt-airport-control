@@ -131,4 +131,37 @@ This is a foundational implementation. Further development includes:
 
 ## License
 
-Proprietary - Airport Flight Control Software
+MIT License - see [LICENSE](LICENSE) file for full details.
+
+You are free to use, modify, distribute, and commercialize this software for any purpose.
+
+---
+
+## Publishing to GitHub
+
+### Quick setup for public repository:
+
+```bash
+# Initialize git repository
+git init
+
+# Add all files
+git add .
+
+# Initial commit
+git commit -m "Initial release"
+
+# Create repository on GitHub
+gh repo create tpt-flight-control --public --source=. --remote=origin
+
+# Push code
+git push origin main
+```
+
+### Recommended GitHub Repository Settings:
+✅ Enable Issues & Discussions  
+✅ Add MIT License (already included)  
+✅ Enable GitHub Pages for documentation  
+✅ Add repository topics: `aviation`, `atc`, `flight-control`, `simulation`, `airport-management`
+
+All cloud deployment workflows, documentation and tests are already configured and ready for public release.
