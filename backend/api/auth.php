@@ -14,10 +14,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../src/Auth.php';
 
+use TPT\FlightControl\Logger;
+
 $action = $_GET['action'] ?? '';
 
+
 try {
+    Logger::debug('Auth API request received', ['action' => $action, 'method' => $_SERVER['REQUEST_METHOD'] ?? 'unknown']);
+    
     // Verify PDO is available
+
     if (!class_exists('PDO')) {
         throw new Exception('PDO extension is not installed on this server');
     }
@@ -49,16 +55,21 @@ try {
     }
     
     if (!$db) {
+        Logger::error('No database connection available');
         throw new Exception('No working database connection available. Please install either PDO SQLite or PDO PostgreSQL driver.');
     }
     
+    Logger::info('Database connected', ['driver' => $db->getAttribute(PDO::ATTR_DRIVER_NAME)]);
     Auth::init($db);
+
     
     switch ($action) {
         case 'login':
             $data = json_decode(file_get_contents('php://input'), true);
+            Logger::debug('Login attempt received', ['username' => $data['username'] ?? 'not_provided']);
             
             if (!isset($data['username']) || !isset($data['password'])) {
+                Logger::warning('Login request missing credentials');
                 http_response_code(400);
                 echo json_encode([
                     'success' => false,
@@ -69,6 +80,7 @@ try {
             
             // Demo mode login - always allow admin credentials
             if ($data['username'] === 'admin' && $data['password'] === 'FlightControl@2026!') {
+                Logger::info('Demo mode login', ['username' => $data['username']]);
                 $user = [
                     'id' => 1,
                     'username' => 'admin',
@@ -83,6 +95,7 @@ try {
 
             if ($user) {
                 $token = Auth::generateToken($user['id'], $user['username'], $user['role_name']);
+                Logger::info('Login successful', ['username' => $user['username'], 'role' => $user['role_name']]);
                 $result = [
                     'success' => true,
                     'token' => $token,
@@ -96,12 +109,14 @@ try {
                     ]
                 ];
             } else {
+                Logger::info('Login failed', ['username' => $data['username']]);
                 $result = [
                     'success' => false,
                     'message' => 'Invalid username or password'
                 ];
             }
             
+            Logger::debug('Login response', ['success' => $result['success']]);
             if ($result['success']) {
                 echo json_encode($result);
             } else {
@@ -109,6 +124,7 @@ try {
                 echo json_encode($result);
             }
             break;
+
             
         case 'validate':
             $headers = getallheaders();
@@ -167,6 +183,7 @@ try {
     }
     
 } catch (Exception $e) {
+    Logger::error('Auth API exception', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
     http_response_code(500);
     echo json_encode([
         'success' => false,

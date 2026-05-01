@@ -29,6 +29,7 @@ class Auth {
     }
 
     public static function generateToken($userId, $username, $role) {
+        Logger::debug('generateToken() called', ['user_id' => $userId, 'username' => $username, 'role' => $role]);
         $issuedAt = time();
         $expirationTime = $issuedAt + 3600; // 1 hour
 
@@ -157,9 +158,13 @@ class Auth {
     }
 
     public static function validateToken($token) {
+        Logger::debug('validateToken() called', ['token_length' => strlen($token)]);
         try {
-            return JWT::decode($token, self::$secretKey);
+            $decoded = JWT::decode($token, self::$secretKey);
+            Logger::debug('validateToken() success', ['user_id' => $decoded['user_id'] ?? null]);
+            return $decoded;
         } catch (Exception $e) {
+            Logger::debug('validateToken() failed', ['error' => $e->getMessage()]);
             return false;
         }
     }
@@ -169,8 +174,10 @@ class Auth {
     }
 
     public static function getCurrentUser() {
+        Logger::debug('getCurrentUser() called');
         // Check if user is already authenticated in this request
         if (isset($GLOBALS['current_user'])) {
+            Logger::debug('getCurrentUser() returning cached user');
             return $GLOBALS['current_user'];
         }
 
@@ -179,13 +186,16 @@ class Auth {
         $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? '';
 
         if (empty($authHeader) || !preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
+            Logger::debug('getCurrentUser() no Authorization header found');
             return null;
         }
 
         $token = $matches[1];
+        Logger::debug('getCurrentUser() token extracted', ['token_length' => strlen($token)]);
         $userData = self::validateToken($token);
 
         if (!$userData) {
+            Logger::debug('getCurrentUser() token validation failed');
             return null;
         }
 
@@ -201,6 +211,7 @@ class Auth {
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($user) {
+                Logger::debug('getCurrentUser() user found', ['username' => $user['username'], 'role' => $user['role_name']]);
                 // Add passenger_id for passenger role users
                 if ($user['role_name'] === 'passenger') {
                     $passengerStmt = self::$pdo->prepare("SELECT id FROM passengers WHERE user_id = ?");
@@ -211,15 +222,12 @@ class Auth {
 
                 $GLOBALS['current_user'] = $user;
                 return $user;
+            } else {
+                Logger::debug('getCurrentUser() user not found in database', ['user_id' => $userData['user_id']]);
             }
         } catch (Exception $e) {
             error_log('Database error fetching user data: ' . $e->getMessage());
-            if (class_exists('Logger')) {
-                Logger::error('Failed to fetch authenticated user data: ' . $e->getMessage(), [
-                    'user_id' => $userData['user_id'] ?? null,
-                    'exception' => $e
-                ]);
-            }
+            Logger::error('getCurrentUser() database exception', ['message' => $e->getMessage(), 'user_id' => $userData['user_id'] ?? null]);
         }
 
         return null;
@@ -244,6 +252,7 @@ class Auth {
     }
 
     public static function authenticate($username, $password) {
+        Logger::debug('authenticate() called', ['username' => $username]);
         try {
             // First check if account is locked
             $lockCheckStmt = self::$pdo->prepare("
@@ -257,13 +266,14 @@ class Auth {
             if ($userStatus) {
                 // Check if account is currently locked
                 if ($userStatus['account_locked_until'] !== null && strtotime($userStatus['account_locked_until']) > time()) {
-                    error_log("Login attempt to locked account: " . $username);
+                    Logger::info('authenticate() account locked', ['username' => $username, 'locked_until' => $userStatus['account_locked_until']]);
                     sleep(2); // Prevent timing attacks
                     return false;
                 }
                 
                 // Clear lock if expired
                 if ($userStatus['account_locked_until'] !== null && strtotime($userStatus['account_locked_until']) <= time()) {
+                    Logger::debug('authenticate() clearing expired lock', ['username' => $username]);
                     $clearLockStmt = self::$pdo->prepare("
                         UPDATE users 
                         SET login_attempts = 0, account_locked_until = NULL 
@@ -284,6 +294,7 @@ class Auth {
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$user || !password_verify($password, $user['password_hash'])) {
+                Logger::info('authenticate() failed - invalid credentials', ['username' => $username, 'user_found' => !!$user]);
                 // Increment failed login attempts
                 if ($userStatus) {
                     $newAttempts = (int)$userStatus['login_attempts'] + 1;
@@ -308,6 +319,7 @@ class Auth {
             }
 
             // Successful login - reset failed attempts
+            Logger::info('authenticate() successful', ['username' => $user['username'], 'role' => $user['role_name'], 'user_id' => $user['id']]);
             $resetAttemptsStmt = self::$pdo->prepare("
                 UPDATE users 
                 SET login_attempts = 0, last_failed_login = NULL, account_locked_until = NULL, last_login_at = CURRENT_TIMESTAMP 
@@ -325,6 +337,7 @@ class Auth {
 
             return $user;
         } catch (Exception $e) {
+            Logger::error('authenticate() exception', ['message' => $e->getMessage(), 'username' => $username]);
             return false;
         }
     }

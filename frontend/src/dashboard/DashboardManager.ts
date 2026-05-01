@@ -71,73 +71,100 @@ export class DashboardManager {
   }
 
   async render() {
-    const user = this.auth.getUser();
-    if (!user) {
-      this.container.innerHTML = '<div class="min-h-screen bg-slate-950 flex items-center justify-center text-red-400">Authentication required</div>';
-      return;
-    }
+    console.debug('[DashboardManager] render() called');
+    try {
+      const user = this.auth.getUser();
+      console.debug('[DashboardManager] User from auth:', user ? `${user.username} / role: ${user.role_name}` : 'null', 'role_name type:', typeof user?.role_name);
 
-    this.container.innerHTML = `
-      <div class="min-h-screen bg-slate-950 flex flex-col">
-        ${this.header.render(user)}
-        <div class="flex flex-1 overflow-hidden">
-          ${this.sidebar.render(user)}
-          <main class="flex-1 overflow-y-auto p-6 bg-slate-950">
-            <div id="dashboard-content">
-              ${await this.renderContent(user)}
-            </div>
-          </main>
+      if (!user || typeof user.role_name === 'undefined') {
+        console.error('[DashboardManager] Authentication check failed - user:', user, 'role_name:', user?.role_name);
+        this.container.innerHTML = '<div class="min-h-screen bg-slate-950 flex items-center justify-center text-red-400">Authentication required</div>';
+        return;
+      }
+
+      console.debug('[DashboardManager] Rendering view:', this.currentView);
+      this.container.innerHTML = `
+        <div class="min-h-screen bg-slate-950 flex flex-col">
+          ${this.header.render(user)}
+          <div class="flex flex-1 overflow-hidden">
+            ${this.sidebar.render(user)}
+            <main class="flex-1 overflow-y-auto p-6 bg-slate-950">
+              <div id="dashboard-content">
+                ${await this.renderContent(user)}
+              </div>
+            </main>
+          </div>
         </div>
-      </div>
-    `;
+      `;
 
-    this.setupEventListeners();
+      this.setupEventListeners();
+      console.debug('[DashboardManager] render() completed successfully');
+    } catch (error) {
+      console.error('[DashboardManager] render() error:', error);
+      this.container.innerHTML = `<div class="min-h-screen bg-slate-950 flex items-center justify-center text-red-400 p-8">
+        <div>
+          <h2 class="text-xl font-bold mb-2">Dashboard Error</h2>
+          <pre class="text-sm whitespace-pre-wrap">${error instanceof Error ? error.message : String(error)}</pre>
+        </div>
+      </div>`;
+    }
   }
+
 
   private async renderContent(user: User): Promise<string> {
-    switch (this.currentView) {
-      case 'overview':
-        return await this.overviewView.render(user);
-      case 'flights':
-        return await this.flightsView.render(user);
-      case 'my-bookings':
-        return await this.bookingsView.render(user);
-      case 'infrastructure':
-        return await this.infrastructureView.render(user);
-      case 'infrastructure-reports':
-        return await this.infrastructureReportsView.render(user);
-      case 'drones':
-        return await this.droneView.render(user);
-      case 'drone-reports':
-        return await this.droneReportsView.render(user);
-      case 'customs':
-        return await this.customsView.render(user);
-      case 'customs-reports':
-        return await this.customsReportsView.render(user);
-      case 'advanced-security':
-        return await this.advancedSecurityView.render(user);
-      case 'advanced-security-reports':
-        return await this.advancedSecurityReportsView.render(user);
-      case 'ai-conflict-prediction':
-        return await this.aiConflictView.render(user);
-      case 'ai-reports':
-        return await this.aiReportsView.render(user);
-      case 'virtual-assistant':
-        return await this.virtualAssistantView.render(user);
-      case 'module-management':
-        return await this.moduleManagementView.render(user);
-      case 'passengers':
-        return '<div class="text-center text-gray-500 py-8">Passenger management interface coming soon...</div>';
-      case 'maintenance':
-        return '<div class="text-center text-gray-500 py-8">Maintenance management interface coming soon...</div>';
-      case 'security':
-        return '<div class="text-center text-gray-500 py-8">Security management interface coming soon...</div>';
-      case 'my-baggage':
-        return '<div class="text-center text-gray-500 py-8">Baggage tracking interface coming soon...</div>';
-      default:
-        return '<div class="text-center text-gray-500">Content not available</div>';
+    console.debug('[DashboardManager] renderContent() for view:', this.currentView);
+    try {
+      switch (this.currentView) {
+        case 'overview':
+          return await this.overviewView.render(user);
+        case 'flights':
+          return await this.flightsView.render(user);
+        case 'my-bookings':
+          return await this.bookingsView.render(user);
+        case 'infrastructure':
+          return await this.infrastructureView.render(user);
+        case 'infrastructure-reports':
+          return await this.infrastructureReportsView.render(user);
+        case 'drones':
+          return await this.droneView.render(user);
+        case 'drone-reports':
+          return await this.droneReportsView.render(user);
+        case 'customs':
+          return await this.customsView.render(user);
+        case 'customs-reports':
+          return await this.customsReportsView.render(user);
+        case 'advanced-security':
+          return await this.advancedSecurityView.render(user);
+        case 'advanced-security-reports':
+          return await this.advancedSecurityReportsView.render(user);
+        case 'ai-conflict-prediction':
+          return await this.aiConflictView.render(user);
+        case 'ai-reports':
+          return await this.aiReportsView.render(user);
+        case 'virtual-assistant':
+          return await this.virtualAssistantView.render(user);
+        case 'module-management':
+          return await this.moduleManagementView.render(user);
+        case 'passengers':
+          return '<div class="text-center text-gray-500 py-8">Passenger management interface coming soon...</div>';
+        case 'maintenance':
+          return '<div class="text-center text-gray-500 py-8">Maintenance management interface coming soon...</div>';
+        case 'security':
+          return '<div class="text-center text-gray-500 py-8">Security management interface coming soon...</div>';
+        case 'my-baggage':
+          return '<div class="text-center text-gray-500 py-8">Baggage tracking interface coming soon...</div>';
+        default:
+          return '<div class="text-center text-gray-500">Content not available</div>';
+      }
+    } catch (error) {
+      console.error('[DashboardManager] renderContent() error for view', this.currentView, ':', error);
+      return `<div class="text-center text-red-400 py-8">
+        <div class="font-bold mb-2">Error loading view: ${this.currentView}</div>
+        <div class="text-sm">${error instanceof Error ? error.message : String(error)}</div>
+      </div>`;
     }
   }
+
 
   private handleViewChange(view: DashboardView): void {
     this.currentView = view;

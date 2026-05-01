@@ -36,26 +36,35 @@ class AuthManager {
   }
 
   private loadStoredAuth() {
+    console.debug('[AuthManager] loadStoredAuth() called');
     const storedToken = localStorage.getItem('auth_token');
     const storedUser = localStorage.getItem('auth_user');
+    console.debug('[AuthManager] localStorage auth_token exists:', !!storedToken, 'auth_user exists:', !!storedUser);
 
     if (storedToken && storedUser) {
       this.token = storedToken;
       try {
         this.user = JSON.parse(storedUser);
+        console.debug('[AuthManager] Loaded user from localStorage:', this.user?.username, 'role:', this.user?.role_name);
       } catch (error) {
-        console.error('Failed to parse stored user data:', error);
+        console.error('[AuthManager] Failed to parse stored user data:', error);
         this.logout();
       }
+    } else {
+      console.debug('[AuthManager] No stored auth data found');
     }
   }
 
+
   private saveAuth(token: string, user: User) {
+    console.debug('[AuthManager] saveAuth() called for user:', user.username, 'role:', user.role_name, 'token length:', token.length);
     this.token = token;
     this.user = user;
     localStorage.setItem('auth_token', token);
     localStorage.setItem('auth_user', JSON.stringify(user));
+    console.debug('[AuthManager] Auth data saved to localStorage');
   }
+
 
   private clearAuth() {
     this.token = null;
@@ -65,6 +74,7 @@ class AuthManager {
   }
 
   async login(username: string, password: string): Promise<AuthResponse> {
+    console.debug('[AuthManager] login() called for username:', username);
     try {
       const response = await fetch(`${this.API_BASE}/auth.php?action=login`, {
         method: 'POST',
@@ -73,20 +83,25 @@ class AuthManager {
         },
         body: JSON.stringify({ username, password }),
       });
+      console.debug('[AuthManager] Login response status:', response.status);
 
       const data = await response.json();
+      console.debug('[AuthManager] Login response data success:', data.success, 'has token:', !!data.token, 'has user:', !!data.user);
 
       if (data.success && data.token && data.user) {
         this.saveAuth(data.token, data.user);
+        console.debug('[AuthManager] Login successful, returning success');
         return { success: true, token: data.token, user: data.user };
       } else {
+        console.debug('[AuthManager] Login failed:', data.message || 'Unknown reason');
         return { success: false, message: data.message || 'Login failed' };
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('[AuthManager] Login error:', error);
       return { success: false, message: 'Network error. Please try again.' };
     }
   }
+
 
   async register(userData: {
     username: string;
@@ -154,22 +169,29 @@ class AuthManager {
   }
 
   logout(): void {
+    console.debug('[AuthManager] logout() called');
     this.clearAuth();
     // Redirect to login or reload page
     window.location.reload();
   }
 
+
   isAuthenticated(): boolean {
-    return this.token !== null && this.user !== null;
+    const result = this.token !== null && this.user !== null;
+    console.debug('[AuthManager] isAuthenticated() returning:', result, 'token exists:', !!this.token, 'user exists:', !!this.user);
+    return result;
   }
+
 
   getToken(): string | null {
     return this.token;
   }
 
   getUser(): User | null {
+    console.debug('[AuthManager] getUser() returning:', this.user ? `${this.user.username} (${this.user.role_name})` : 'null');
     return this.user;
   }
+
 
   hasRole(role: string): boolean {
     return this.user?.role_name === role;
@@ -244,20 +266,24 @@ class AuthManager {
 
   // Check if token is still valid
   async validateToken(): Promise<boolean> {
+    console.debug('[AuthManager] validateToken() called, token exists:', !!this.token);
     if (!this.token) return false;
 
     try {
       const response = await this.authenticatedFetch(`${this.API_BASE}/auth.php?action=validate`);
       const data = await response.json();
+      console.debug('[AuthManager] validateToken() response valid:', data.valid === true);
       return data.valid === true;
     } catch (error) {
-      console.error('Token validation error:', error);
+      console.error('[AuthManager] Token validation error:', error);
       return false;
     }
   }
 
+
   // Refresh token if needed
   async refreshToken(): Promise<boolean> {
+    console.debug('[AuthManager] refreshToken() called, token exists:', !!this.token);
     if (!this.token) return false;
 
     try {
@@ -265,6 +291,7 @@ class AuthManager {
       const response = await fetch(`${this.API_BASE}/auth.php?action=refresh`, {
         headers: { 'Authorization': `Bearer ${this.token}` },
       });
+      console.debug('[AuthManager] refreshToken() response ok:', response.ok);
 
       if (!response.ok) return false;
 
@@ -273,14 +300,17 @@ class AuthManager {
       if (data.success && data.token) {
         this.token = data.token;
         localStorage.setItem('auth_token', data.token);
+        console.debug('[AuthManager] refreshToken() successful, new token saved');
         return true;
       }
     } catch (error) {
-      console.error('Token refresh error:', error);
+      console.error('[AuthManager] Token refresh error:', error);
     }
 
+    console.debug('[AuthManager] refreshToken() failed, returning false');
     return false;
   }
+
 }
 
 // Authentication UI Components

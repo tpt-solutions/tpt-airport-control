@@ -2,6 +2,16 @@ import { AuthManager } from '../../auth.js';
 import { ThemeManager, THEMES } from '../../services/ThemeManager.js';
 import type { User } from '../types.js';
 
+// Default fallback user when no user is authenticated
+const defaultUser: User = {
+  id: 0,
+  username: 'guest',
+  email: '',
+  first_name: 'Guest',
+  last_name: 'User',
+  role_name: 'guest'
+};
+
 export class DashboardHeader {
   private container: HTMLElement;
   private auth: AuthManager;
@@ -13,9 +23,12 @@ export class DashboardHeader {
     this.themeManager = ThemeManager.getInstance();
   }
 
-  render(user: User): string {
+  render(user?: User | null): string {
+    // Use default user if user is undefined/null to prevent crashes
+    const currentUser = (!user || typeof user.role_name === 'undefined') ? defaultUser : user;
+    
     const roleLabels: Record<string, string> = {
-      admin: 'Admin', operator: 'Operator', passenger: 'Passenger'
+      admin: 'Admin', operator: 'Operator', passenger: 'Passenger', guest: 'Guest'
     };
     const current = this.themeManager.getTheme();
 
@@ -50,15 +63,15 @@ export class DashboardHeader {
 
           <!-- Role badge -->
           <span class="fc-accent-bg text-xs font-semibold px-2.5 py-1 uppercase tracking-wider">
-            ${roleLabels[user.role_name] ?? user.role_name}
+            ${roleLabels[currentUser.role_name] ?? currentUser.role_name}
           </span>
 
           <!-- User avatar + name -->
           <div class="flex items-center gap-2">
             <div class="w-7 h-7 rounded-full bg-gradient-to-br from-slate-600 to-slate-700 border fc-divider flex items-center justify-center fc-text-secondary text-xs font-semibold shrink-0">
-              ${user.first_name.charAt(0)}${user.last_name.charAt(0)}
+              ${currentUser.first_name.charAt(0)}${currentUser.last_name.charAt(0)}
             </div>
-            <span class="hidden md:block text-sm fc-text-secondary">${user.first_name} ${user.last_name}</span>
+            <span class="hidden md:block text-sm fc-text-secondary">${currentUser.first_name} ${currentUser.last_name}</span>
           </div>
 
           <button id="logout-btn"

@@ -175,27 +175,44 @@ class FlightControlApp {
   private atcDashboard: ATC3DDashboard | null = null;
 
   constructor() {
+    console.debug('[FlightControlApp] Constructor starting');
     this.app = document.querySelector<HTMLDivElement>('#app')!;
     this.auth = AuthManager.getInstance();
     this.authUI = new AuthUI(this.app);
     this.dashboard = new DashboardManager(this.app);
-    this.init();
+    console.debug('[FlightControlApp] Dependencies initialized, calling init()');
+    this.init().catch(error => {
+      console.error('[FlightControlApp] Failed to initialize app:', error);
+    });
   }
 
   private async init() {
+    console.debug('[FlightControlApp] init() starting');
     // Check if user is already authenticated
-    if (this.auth.isAuthenticated()) {
+    const authenticated = this.auth.isAuthenticated();
+    console.debug('[FlightControlApp] isAuthenticated() result:', authenticated);
+    if (authenticated) {
+      console.debug('[FlightControlApp] User authenticated, showing dashboard');
       await this.showDashboard();
     } else {
+      console.debug('[FlightControlApp] User not authenticated, showing login');
       this.showLogin();
     }
   }
 
   private async showDashboard() {
-    await this.dashboard.render();
+    console.debug('[FlightControlApp] showDashboard() called');
+    try {
+      await this.dashboard.render();
+      console.debug('[FlightControlApp] Dashboard rendered successfully');
+    } catch (error) {
+      console.error('[FlightControlApp] showDashboard() error:', error);
+      throw error;
+    }
   }
 
   private showLogin() {
+    console.debug('[FlightControlApp] showLogin() called');
     this.authUI.renderLoginForm();
   }
 
