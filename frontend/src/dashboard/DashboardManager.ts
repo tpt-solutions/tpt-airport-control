@@ -121,7 +121,6 @@ export class DashboardManager {
       }
     } catch (error) {
       console.error('[DashboardManager] renderContent() error for view', this.currentView, ':', error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
       return `<div class="text-center text-red-400 py-8">
         <div class="font-bold mb-2">Error loading view: ${this.currentView}</div>
         <div id="error-message-text" class="text-sm"></div>

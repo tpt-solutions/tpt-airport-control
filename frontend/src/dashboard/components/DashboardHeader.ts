@@ -41,7 +41,7 @@ export class DashboardHeader {
     return `
       <header class="fc-header px-5 py-3 flex items-center justify-between shrink-0">
         <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shrink-0">
+          <div class="w-8 h-8 rounded-lg bg-linear-to-br from-blue-500 to-violet-600 flex items-center justify-center shrink-0">
             <span class="text-white text-xs font-bold tracking-tight">FC</span>
           </div>
           <div class="hidden sm:flex flex-col leading-tight">
@@ -65,7 +65,7 @@ export class DashboardHeader {
 
           <!-- User avatar + name -->
           <div class="flex items-center gap-2">
-            <div class="w-7 h-7 rounded-full bg-gradient-to-br from-slate-600 to-slate-700 border fc-divider flex items-center justify-center fc-text-secondary text-xs font-semibold shrink-0">
+            <div class="w-7 h-7 rounded-full bg-linear-to-br from-slate-600 to-slate-700 border fc-divider flex items-center justify-center fc-text-secondary text-xs font-semibold shrink-0">
               ${currentUser.first_name.charAt(0)}${currentUser.last_name.charAt(0)}
             </div>
             <span class="hidden md:block text-sm fc-text-secondary">${currentUser.first_name} ${currentUser.last_name}</span>

@@ -304,7 +304,7 @@ class AuthUI {
         <div class="w-full max-w-md">
           <div class="bg-slate-800 border border-slate-700/60 rounded-xl p-8">
             <div class="flex items-center justify-center gap-3 mb-8">
-              <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shrink-0">
+              <div class="w-10 h-10 rounded-lg bg-linear-to-br from-blue-500 to-violet-600 flex items-center justify-center shrink-0">
                 <span class="text-white font-bold tracking-tight">FC</span>
               </div>
               <h2 class="text-xl font-semibold text-slate-100">Flight Control</h2>
@@ -366,7 +366,7 @@ class AuthUI {
         <div class="w-full max-w-md">
           <div class="bg-slate-800 border border-slate-700/60 rounded-xl p-8">
             <div class="flex items-center justify-center gap-3 mb-8">
-              <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shrink-0">
+              <div class="w-10 h-10 rounded-lg bg-linear-to-br from-blue-500 to-violet-600 flex items-center justify-center shrink-0">
                 <span class="text-white font-bold tracking-tight">FC</span>
               </div>
               <h2 class="text-xl font-semibold text-slate-100">Create Account</h2>
@@ -443,7 +443,7 @@ class AuthUI {
         <div class="w-full max-w-md">
           <div class="bg-slate-800 border border-slate-700/60 rounded-xl p-8">
             <div class="flex items-center justify-center gap-3 mb-8">
-              <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shrink-0">
+              <div class="w-10 h-10 rounded-lg bg-linear-to-br from-blue-500 to-violet-600 flex items-center justify-center shrink-0">
                 <span class="text-white font-bold tracking-tight">FC</span>
               </div>
               <h2 class="text-xl font-semibold text-slate-100">Reset Password</h2>

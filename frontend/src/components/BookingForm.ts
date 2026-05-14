@@ -75,7 +75,7 @@ export class BookingForm {
             <button type="submit"
                     class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
               <span id="booking-submit-text">Create Booking</span>
-              <div id="booking-spinner" class="hidden ml-2 inline-block">
+              <div id="booking-spinner" class="hidden ml-2">
                 <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
               </div>
             </button>

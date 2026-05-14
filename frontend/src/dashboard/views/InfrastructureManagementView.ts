@@ -171,7 +171,7 @@ export class InfrastructureManagementView {
     return `
       <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center">
-          <div class="flex-shrink-0">
+          <div class="shrink-0">
             <div class="w-8 h-8 ${colorClasses[color as keyof typeof colorClasses]} rounded-full flex items-center justify-center text-white text-sm">
               ${icon}
             </div>

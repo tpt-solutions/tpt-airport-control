@@ -1,13 +1,15 @@
 import { DashboardApiService } from '../services/DashboardApiService.js';
 import { FlightMapView } from './FlightMapView.js';
+import { ATC3DVisualization } from '../../atc-3d-visualization.js';
 import type { Flight, User } from '../types.js';
 
-type ViewMode = 'list' | 'map';
+type ViewMode = 'list' | 'map' | '3d';
 
 export class FlightsManagementView {
   private apiService: DashboardApiService;
   private currentViewMode: ViewMode = 'list';
   private mapView: FlightMapView | null = null;
+  private atc3dView: ATC3DVisualization | null = null;
   private cachedFlights: Flight[] = [];
   private cachedUser: User | null = null;
 
@@ -21,27 +23,44 @@ export class FlightsManagementView {
       const flights = await this.apiService.fetchFlights();
       this.cachedFlights = flights;
 
+      const viewModeBtns = [
+        { mode: 'list' as ViewMode, label: '📋 List', desc: 'List View' },
+        { mode: 'map' as ViewMode, label: '🗺 Map', desc: 'Map View' },
+        { mode: '3d' as ViewMode, label: '🎯 3D', desc: '3D ATC View' },
+      ];
+
       return `
         <div class="space-y-6">
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between flex-wrap gap-3">
             <h2 class="text-xl font-semibold text-slate-100">Flight Management</h2>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
               <input type="text" id="flight-search" placeholder="Search flights..."
                      class="px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-              <button id="toggle-view-btn" class="px-4 py-2 rounded-lg font-medium transition-colors ${
-                this.currentViewMode === 'list'
-                  ? 'bg-blue-600 text-white hover:bg-blue-500'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              }">
-                ${this.currentViewMode === 'list' ? '🗺 Map View' : '📋 List View'}
-              </button>
+              <div class="flex rounded-lg overflow-hidden border border-slate-600">
+                ${viewModeBtns.map(({ mode, label, desc }) => `
+                  <button
+                    class="view-mode-btn px-3 py-2 text-sm font-medium transition-colors ${
+                      this.currentViewMode === mode
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }"
+                    data-mode="${mode}"
+                    title="${desc}">
+                    ${label}
+                  </button>
+                `).join('')}
+              </div>
               <button id="add-flight-btn" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 transition-colors">
                 Add Flight
               </button>
             </div>
           </div>
 
-          ${this.currentViewMode === 'list' ? this.renderListView(flights) : this.renderMapView()}
+          ${this.currentViewMode === 'list'
+            ? this.renderListView(flights)
+            : this.currentViewMode === 'map'
+              ? this.renderMapView()
+              : this.render3DView()}
         </div>
       `;
     } catch (error) {
@@ -114,7 +133,40 @@ export class FlightsManagementView {
   }
 
   private renderMapView(): string {
-    return `<div id="flight-map-container"></div>`;
+    return `<div id="flight-map-container" class="h-150"></div>`;
+  }
+
+  private render3DView(): string {
+    return `
+      <div id="flight-3d-container" class="relative rounded-xl overflow-hidden border border-slate-700/60" style="height: 650px;">
+        <div class="absolute top-3 left-3 z-10 flex gap-2">
+          <button id="view-plan-btn" class="px-3 py-1.5 text-xs font-medium bg-slate-800/80 text-slate-200 rounded hover:bg-slate-700 backdrop-blur-sm border border-slate-600/50" title="Plan view (top-down)">🛰 Plan</button>
+          <button id="view-side-btn" class="px-3 py-1.5 text-xs font-medium bg-slate-800/80 text-slate-200 rounded hover:bg-slate-700 backdrop-blur-sm border border-slate-600/50" title="Side view">📐 Side</button>
+          <button id="view-3d-btn" class="px-3 py-1.5 text-xs font-medium bg-slate-800/80 text-slate-200 rounded hover:bg-slate-700 backdrop-blur-sm border border-slate-600/50" title="3D perspective">🎯 3D</button>
+          <button id="view-reset-btn" class="px-3 py-1.5 text-xs font-medium bg-slate-800/80 text-slate-200 rounded hover:bg-slate-700 backdrop-blur-sm border border-slate-600/50" title="Reset camera">🔄 Reset</button>
+        </div>
+        <div class="absolute top-3 right-3 z-10 flex flex-col gap-1">
+          <button id="toggle-weather-btn" class="px-2 py-1 text-xs font-medium bg-slate-800/80 text-slate-200 rounded hover:bg-slate-700 backdrop-blur-sm border border-slate-600/50" title="Toggle weather">⛅ Wx</button>
+          <button id="toggle-terrain-btn" class="px-2 py-1 text-xs font-medium bg-slate-800/80 text-slate-200 rounded hover:bg-slate-700 backdrop-blur-sm border border-slate-600/50" title="Toggle terrain">🗻 Terrain</button>
+          <button id="toggle-paths-btn" class="px-2 py-1 text-xs font-medium bg-slate-800/80 text-slate-200 rounded hover:bg-slate-700 backdrop-blur-sm border border-slate-600/50" title="Toggle flight paths">✈️ Paths</button>
+        </div>
+        <div class="absolute bottom-3 left-3 z-10 flex gap-3 text-xs text-slate-400 bg-slate-800/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-slate-600/50">
+          <span>Flights: <strong id="flight-count-3d" class="text-slate-100">${this.cachedFlights.length}</strong></span>
+          <span class="text-slate-600">|</span>
+          <span><kbd class="px-1 py-0.5 bg-slate-700 rounded text-xs">1-3</kbd> Views</span>
+          <span><kbd class="px-1 py-0.5 bg-slate-700 rounded text-xs">R</kbd> Reset</span>
+          <span><kbd class="px-1 py-0.5 bg-slate-700 rounded text-xs">F</kbd> Focus</span>
+          <span><kbd class="px-1 py-0.5 bg-slate-700 rounded text-xs">Space</kbd> Pause</span>
+        </div>
+        <div id="radio-comms-overlay" class="absolute bottom-16 left-3 z-10 hidden max-w-md">
+          <div class="bg-slate-900/90 backdrop-blur-sm border border-slate-600/60 rounded-lg px-4 py-3 text-sm">
+            <div class="text-xs text-slate-500 mb-1">📡 RADIO COMMS</div>
+            <div id="radio-comms-text" class="text-emerald-400 font-mono text-xs leading-relaxed"></div>
+          </div>
+        </div>
+        <div id="atc-3d-render-target"></div>
+      </div>
+    `;
   }
 
   setupEventListeners(): void {
@@ -127,7 +179,6 @@ export class FlightsManagementView {
         if (!tableBody) return;
 
         if (!query) {
-          // Show all rows
           tableBody.querySelectorAll('tr').forEach(tr => tr.style.display = '');
           return;
         }
@@ -145,18 +196,25 @@ export class FlightsManagementView {
       addFlightBtn.addEventListener('click', this.openAddFlightModal.bind(this));
     }
 
-    // Toggle view button
-    const toggleBtn = document.getElementById('toggle-view-btn');
-    if (toggleBtn) {
-      toggleBtn.addEventListener('click', () => {
-        this.currentViewMode = this.currentViewMode === 'list' ? 'map' : 'list';
-        this.reRenderView();
+    // View mode toggle buttons
+    document.querySelectorAll('.view-mode-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const mode = (e.currentTarget as HTMLElement).dataset.mode as ViewMode;
+        if (mode && mode !== this.currentViewMode) {
+          this.currentViewMode = mode;
+          this.reRenderView();
+        }
       });
-    }
+    });
 
     // Initialize map if in map mode
     if (this.currentViewMode === 'map') {
       this.initMapView();
+    }
+
+    // Initialize 3D if in 3D mode
+    if (this.currentViewMode === '3d') {
+      this.init3DView();
     }
   }
 
@@ -176,7 +234,6 @@ export class FlightsManagementView {
       this.mapView = new FlightMapView(mapContainer);
     }
 
-    // Re-render map content inside container
     this.mapView.render().then(html => {
       mapContainer.innerHTML = html;
       this.mapView!.setupEventListeners();
@@ -184,6 +241,155 @@ export class FlightsManagementView {
         this.mapView!.initMap(this.cachedFlights);
       }, 100);
     });
+  }
+
+  private init3DView(): void {
+    const renderTarget = document.getElementById('atc-3d-render-target');
+    if (!renderTarget) return;
+
+    // Clean up previous instance if any
+    if (this.atc3dView) {
+      this.atc3dView.destroy();
+      this.atc3dView = null;
+    }
+
+    const container = document.getElementById('flight-3d-container');
+    if (!container) return;
+
+    // Create the 3D visualization
+    this.atc3dView = new ATC3DVisualization({
+      container: renderTarget,
+      bounds: {
+        north: 45,
+        south: 35,
+        east: -70,
+        west: -80,
+        minAltitude: 0,
+        maxAltitude: 50000,
+      },
+      showTerrain: true,
+      showWeather: true,
+      showAirports: true,
+      showFlightPaths: true,
+      updateInterval: 1000,
+    });
+
+    // Load flights from API data
+    this.atc3dView.loadFlightsFromData(this.cachedFlights);
+
+    // Attach radio comms callback
+    this.atc3dView.onRadioComms = (callsign: string, message: string) => {
+      this.showRadioComms(callsign, message);
+    };
+
+    // Attach flight count update
+    this.atc3dView.onFlightCountChange = (count: number) => {
+      const el = document.getElementById('flight-count-3d');
+      if (el) el.textContent = String(count);
+    };
+
+    // Set up keyboard shortcuts
+    this.setup3DKeyboardShortcuts();
+
+    // Set up 3D control buttons
+    this.setup3DControlButtons();
+
+    // Start the pause/resume button state
+    const pauseBtn = document.getElementById('toggle-pause-btn');
+    if (pauseBtn) {
+      pauseBtn.textContent = '⏸ Pause';
+    }
+  }
+
+  private setup3DKeyboardShortcuts(): void {
+    const handler = (e: KeyboardEvent) => {
+      if (!this.atc3dView || this.currentViewMode !== '3d') return;
+
+      // Don't trigger if user is typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      switch (e.key) {
+        case '1':
+          this.atc3dView.setViewMode('plan');
+          e.preventDefault();
+          break;
+        case '2':
+          this.atc3dView.setViewMode('side');
+          e.preventDefault();
+          break;
+        case '3':
+          this.atc3dView.setViewMode('3d');
+          e.preventDefault();
+          break;
+        case 'r':
+        case 'R':
+          this.atc3dView.resetCamera();
+          e.preventDefault();
+          break;
+        case 'f':
+        case 'F':
+          this.atc3dView.focusNextAircraft();
+          e.preventDefault();
+          break;
+        case 'w':
+        case 'W':
+          this.atc3dView.toggleWeather();
+          e.preventDefault();
+          break;
+        case 't':
+        case 'T':
+          this.atc3dView.toggleTerrain();
+          e.preventDefault();
+          break;
+        case 'p':
+        case 'P':
+          this.atc3dView.toggleFlightPaths();
+          e.preventDefault();
+          break;
+        case ' ':
+          this.atc3dView.togglePause();
+          e.preventDefault();
+          break;
+        case 'Escape':
+          this.currentViewMode = 'list';
+          this.reRenderView();
+          e.preventDefault();
+          break;
+      }
+    };
+
+    // Store reference for cleanup
+    (window as any).__atc3dKeyHandler = handler;
+    window.addEventListener('keydown', handler);
+  }
+
+  private setup3DControlButtons(): void {
+    const bind = (id: string, fn: () => void) => {
+      document.getElementById(id)?.addEventListener('click', fn);
+    };
+
+    bind('view-plan-btn', () => this.atc3dView?.setViewMode('plan'));
+    bind('view-side-btn', () => this.atc3dView?.setViewMode('side'));
+    bind('view-3d-btn', () => this.atc3dView?.setViewMode('3d'));
+    bind('view-reset-btn', () => this.atc3dView?.resetCamera());
+    bind('toggle-weather-btn', () => this.atc3dView?.toggleWeather());
+    bind('toggle-terrain-btn', () => this.atc3dView?.toggleTerrain());
+    bind('toggle-paths-btn', () => this.atc3dView?.toggleFlightPaths());
+  }
+
+  private showRadioComms(callsign: string, message: string): void {
+    const overlay = document.getElementById('radio-comms-overlay');
+    const text = document.getElementById('radio-comms-text');
+    if (!overlay || !text) return;
+
+    text.textContent = `🛩️ ${callsign}: "${message}"`;
+    overlay.classList.remove('hidden');
+
+    // Auto-hide after 5 seconds
+    clearTimeout((window as any).__radioCommsTimeout);
+    (window as any).__radioCommsTimeout = window.setTimeout(() => {
+      overlay.classList.add('hidden');
+    }, 5000);
   }
 
   private openAddFlightModal() {
@@ -257,15 +463,15 @@ export class FlightsManagementView {
         </div>
       </div>
     `;
-    
+
     document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
+
     // Close modal
     const closeBtn = document.getElementById('close-add-flight-modal');
     const cancelBtn = document.getElementById('cancel-add-flight');
     if (closeBtn) closeBtn.addEventListener('click', () => this.closeAddFlightModal());
     if (cancelBtn) cancelBtn.addEventListener('click', () => this.closeAddFlightModal());
-    
+
     // Submit form
     const form = document.getElementById('add-flight-form') as HTMLFormElement;
     if (form) {
@@ -282,7 +488,7 @@ export class FlightsManagementView {
 
   private async handleAddFlightSubmit(e: Event) {
     e.preventDefault();
-    
+
     const formData = {
       flight_number: (document.getElementById('flight-number') as HTMLInputElement)?.value || '',
       airline_id: parseInt((document.getElementById('airline') as HTMLSelectElement)?.value || '0'),
@@ -306,4 +512,3 @@ export class FlightsManagementView {
     }
   }
 }
-

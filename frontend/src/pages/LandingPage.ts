@@ -173,13 +173,13 @@ export class LandingPage extends Component {
     }
 
     return `
-      <div class="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900" itemscope itemtype="https://schema.org/SoftwareApplication">
+      <div class="min-h-screen bg-linear-to-br from-slate-900 via-blue-900 to-slate-900" itemscope itemtype="https://schema.org/SoftwareApplication">
         <!-- Navigation -->
         <nav class="bg-black/20 backdrop-blur-sm border-b border-white/10">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
               <div class="flex items-center space-x-2">
-                <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <div class="w-8 h-8 bg-linear-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                   <span class="text-white font-bold text-sm">AOS</span>
                 </div>
                 <span class="text-white font-bold text-xl">Airport Operations Simulator</span>
@@ -188,7 +188,7 @@ export class LandingPage extends Component {
                 <button id="loginBtn" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">
                   Sign In
                 </button>
-                <button id="demoBtn" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:from-blue-600 hover:to-purple-700 transition-all">
+                <button id="demoBtn" class="bg-linear-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:from-blue-600 hover:to-purple-700 transition-all">
                   Start Demo
                 </button>
               </div>
@@ -201,7 +201,7 @@ export class LandingPage extends Component {
             <div class="max-w-7xl mx-auto text-center">
               <h1 itemprop="name" class="text-5xl md:text-7xl font-bold text-white mb-6">
                 Experience Airport
-                <span class="bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
+                <span class="bg-linear-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
                   Operations
                 </span>
               </h1>
@@ -213,7 +213,7 @@ export class LandingPage extends Component {
               powered by actual operational software.
             </p>
             <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-              <button id="exploreRolesBtn" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all transform hover:scale-105 shadow-lg">
+              <button id="exploreRolesBtn" class="bg-linear-to-r from-blue-500 to-purple-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all transform hover:scale-105 shadow-lg">
                 🚀 Explore Roles
               </button>
               <button id="watchDemoBtn" class="border-2 border-white/20 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-white/10 transition-all">
@@ -269,7 +269,7 @@ export class LandingPage extends Component {
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div class="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-                <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mb-4">
+                <div class="w-12 h-12 bg-linear-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mb-4">
                   <span class="text-white text-2xl">🎮</span>
                 </div>
                 <h3 class="text-xl font-semibold text-white mb-2">Gamified Learning</h3>
@@ -277,7 +277,7 @@ export class LandingPage extends Component {
               </div>
 
               <div class="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-                <div class="w-12 h-12 bg-gradient-to-r from-green-500 to-blue-600 rounded-lg flex items-center justify-center mb-4">
+                <div class="w-12 h-12 bg-linear-to-r from-green-500 to-blue-600 rounded-lg flex items-center justify-center mb-4">
                   <span class="text-white text-2xl">🏗️</span>
                 </div>
                 <h3 class="text-xl font-semibold text-white mb-2">Real Software</h3>
@@ -285,7 +285,7 @@ export class LandingPage extends Component {
               </div>
 
               <div class="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-                <div class="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg flex items-center justify-center mb-4">
+                <div class="w-12 h-12 bg-linear-to-r from-purple-500 to-pink-600 rounded-lg flex items-center justify-center mb-4">
                   <span class="text-white text-2xl">🚀</span>
                 </div>
                 <h3 class="text-xl font-semibold text-white mb-2">Career Exploration</h3>
@@ -296,7 +296,7 @@ export class LandingPage extends Component {
         </section>
 
         <!-- CTA Section -->
-        <section class="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-purple-600">
+        <section class="py-20 px-4 sm:px-6 lg:px-8 bg-linear-to-r from-blue-600 to-purple-600">
           <div class="max-w-4xl mx-auto text-center">
             <h2 class="text-4xl font-bold text-white mb-4">Ready to Take Control?</h2>
             <p class="text-xl text-blue-100 mb-8">
@@ -315,7 +315,7 @@ export class LandingPage extends Component {
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
               <div>
                 <div class="flex items-center space-x-2 mb-4">
-                  <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <div class="w-8 h-8 bg-linear-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                     <span class="text-white font-bold text-sm">AOS</span>
                   </div>
                   <span class="text-white font-bold text-lg">Airport Operations Simulator</span>
@@ -397,7 +397,7 @@ export class LandingPage extends Component {
       <div class="role-card bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 hover:bg-white/10 transition-all cursor-pointer group"
            data-role-id="${role.id}">
         <div class="flex items-start justify-between mb-4">
-          <div class="w-12 h-12 bg-gradient-to-r ${role.color} rounded-lg flex items-center justify-center text-2xl">
+          <div class="w-12 h-12 bg-linear-to-r ${role.color} rounded-lg flex items-center justify-center text-2xl">
             ${role.icon}
           </div>
           <span class="px-3 py-1 ${difficultyColors[role.difficulty]} text-white text-xs font-medium rounded-full">
@@ -431,7 +431,7 @@ export class LandingPage extends Component {
           ${role.skills.length > 2 ? `<span class="px-2 py-1 bg-white/10 text-xs text-gray-300 rounded-md">+${role.skills.length - 2}</span>` : ''}
         </div>
 
-        <button class="w-full mt-4 bg-gradient-to-r ${role.color} text-white py-3 px-4 rounded-lg font-medium hover:opacity-90 transition-opacity">
+        <button class="w-full mt-4 bg-linear-to-r ${role.color} text-white py-3 px-4 rounded-lg font-medium hover:opacity-90 transition-opacity">
           Select Role
         </button>
       </div>
@@ -449,7 +449,7 @@ export class LandingPage extends Component {
       <div class="p-6">
         <div class="flex items-start justify-between mb-6">
           <div class="flex items-center space-x-4">
-            <div class="w-16 h-16 bg-gradient-to-r ${role.color} rounded-xl flex items-center justify-center text-3xl">
+            <div class="w-16 h-16 bg-linear-to-r ${role.color} rounded-xl flex items-center justify-center text-3xl">
               ${role.icon}
             </div>
             <div>
@@ -497,13 +497,13 @@ export class LandingPage extends Component {
             </div>
           </div>
 
-          <div class="bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg p-4">
+          <div class="bg-linear-to-r from-blue-500/20 to-purple-500/20 rounded-lg p-4">
             <h4 class="text-lg font-semibold text-white mb-2">Ready to Start?</h4>
             <p class="text-gray-300 mb-4">
               Begin your journey as ${role.name.toLowerCase()}. You'll start with basic scenarios
               and progress to advanced challenges as you gain experience.
             </p>
-            <button id="startRoleBtn" class="w-full bg-gradient-to-r ${role.color} text-white py-3 px-6 rounded-lg font-semibold hover:opacity-90 transition-opacity" data-role-id="${role.id}">
+            <button id="startRoleBtn" class="w-full bg-linear-to-r ${role.color} text-white py-3 px-6 rounded-lg font-semibold hover:opacity-90 transition-opacity" data-role-id="${role.id}">
               🚀 Start as ${role.name}
             </button>
           </div>
