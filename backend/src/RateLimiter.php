@@ -197,10 +197,10 @@ class RateLimiter
 
         if (!$result['allowed']) {
             http_response_code(429);
-            header('X-RateLimit-Limit', $this->defaultLimits[$action]['requests']);
-            header('X-RateLimit-Remaining', $result['remaining']);
-            header('X-RateLimit-Reset', $result['reset']);
-            header('Retry-After', $result['retry_after']);
+            header('X-RateLimit-Limit: ' . $this->defaultLimits[$action]['requests']);
+            header('X-RateLimit-Remaining: ' . $result['remaining']);
+            header('X-RateLimit-Reset: ' . $result['reset']);
+            header('Retry-After: ' . ($result['retry_after'] ?? 0));
 
             echo json_encode([
                 'error' => 'Rate limit exceeded',
@@ -212,9 +212,9 @@ class RateLimiter
         }
 
         // Add rate limit headers to response
-        header('X-RateLimit-Limit', $this->defaultLimits[$action]['requests']);
-        header('X-RateLimit-Remaining', $result['remaining']);
-        header('X-RateLimit-Reset', $result['reset']);
+        header('X-RateLimit-Limit: ' . $this->defaultLimits[$action]['requests']);
+        header('X-RateLimit-Remaining: ' . $result['remaining']);
+        header('X-RateLimit-Reset: ' . $result['reset']);
     }
 
     /**
@@ -232,38 +232,48 @@ class RateLimiter
     }
 
     /**
-     * Get client IP address
+     * Get client IP address.
+     *
+     * Proxy headers (X-Forwarded-For, CF-Connecting-IP, etc.) are only trusted when
+     * the direct connection comes from a server in the TRUSTED_PROXIES env var (comma-
+     * separated CIDR or exact IPs). Without a configured trusted proxy list, REMOTE_ADDR
+     * is always used — an attacker cannot spoof the rate-limit key via a forged header.
      */
     private function getClientIP()
     {
-        $headers = [
-            'HTTP_CF_CONNECTING_IP',
-            'HTTP_CLIENT_IP',
-            'HTTP_X_FORWARDED_FOR',
-            'HTTP_X_FORWARDED',
-            'HTTP_X_CLUSTER_CLIENT_IP',
-            'HTTP_FORWARDED_FOR',
-            'HTTP_FORWARDED',
-            'REMOTE_ADDR'
-        ];
+        $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
 
-        foreach ($headers as $header) {
-            if (!empty($_SERVER[$header])) {
-                $ip = $_SERVER[$header];
+        $trustedProxies = array_filter(array_map('trim',
+            explode(',', getenv('TRUSTED_PROXIES') ?: '')
+        ));
 
-                // Handle comma-separated IPs (X-Forwarded-For)
-                if (strpos($ip, ',') !== false) {
-                    $ip = trim(explode(',', $ip)[0]);
-                }
+        if (!empty($trustedProxies) && in_array($remoteAddr, $trustedProxies, true)) {
+            $proxyHeaders = [
+                'HTTP_CF_CONNECTING_IP',
+                'HTTP_CLIENT_IP',
+                'HTTP_X_FORWARDED_FOR',
+                'HTTP_X_FORWARDED',
+                'HTTP_X_CLUSTER_CLIENT_IP',
+                'HTTP_FORWARDED_FOR',
+                'HTTP_FORWARDED',
+            ];
 
-                // Validate IP
-                if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-                    return $ip;
+            foreach ($proxyHeaders as $header) {
+                if (!empty($_SERVER[$header])) {
+                    $ip = $_SERVER[$header];
+
+                    if (strpos($ip, ',') !== false) {
+                        $ip = trim(explode(',', $ip)[0]);
+                    }
+
+                    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                        return $ip;
+                    }
                 }
             }
         }
 
-        return '127.0.0.1';
+        return $remoteAddr;
     }
 
     /**

@@ -1,4 +1,5 @@
-import { DashboardApiService } from '../services/DashboardApiService.js';
+﻿import { DashboardApiService } from '../services/DashboardApiService.js';
+import { AuthManager } from '../../auth.js';
 import type { User } from '../types.js';
 
 interface ConflictHistory {
@@ -272,19 +273,19 @@ export class AIConflictReportsView {
       const [performanceResponse, historyResponse, trainingResponse] = await Promise.all([
         fetch(`/backend/api/ai-conflicts/performance?range=${timeRange}`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
             'Content-Type': 'application/json'
           }
         }),
         fetch(`/backend/api/ai-conflicts/history?range=${timeRange}`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
             'Content-Type': 'application/json'
           }
         }),
         fetch('/backend/api/ai-conflicts/training', {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
             'Content-Type': 'application/json'
           }
         })

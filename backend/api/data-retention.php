@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/cors.php';
 /**
  * Data Retention Policies API Endpoint
  *
@@ -20,16 +21,8 @@ $dataRetention = new DataRetentionPolicies($db, $logger, $gdprCompliance);
 $lifecycleManager = new DataLifecycleManager($db, $logger, $dataRetention);
 $storageManager = new StorageOptimizationManager($db, $logger);
 
-// Set headers
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-
-// Handle preflight OPTIONS request
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
-}
+// Top-level authentication gate — data-retention endpoints are admin-only.
+Middleware::authenticate();
 
 // Get request method and path
 $method = $_SERVER['REQUEST_METHOD'];
@@ -547,7 +540,7 @@ function updateRetentionException($exceptionId, $updateData)
         return ['success' => true, 'message' => 'Retention exception updated successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -575,7 +568,7 @@ function updateRetentionPolicy($policyId, $updateData)
         return ['success' => true, 'message' => 'Retention policy updated successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -593,6 +586,6 @@ function deleteRetentionException($exceptionId)
         return ['success' => true, 'message' => 'Retention exception deleted successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }

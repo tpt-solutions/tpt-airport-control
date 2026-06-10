@@ -1,15 +1,12 @@
 <?php
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
-}
-
+require_once __DIR__ . '/cors.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../src/Middleware.php';
 require_once __DIR__ . '/../controllers/BookingController.php';
+
+// Enforce authentication before any routing — the controller methods check auth
+// internally too, but this outer gate ensures no route can slip through unauthenticated.
+Middleware::authenticate();
 
 try {
     $method = $_SERVER['REQUEST_METHOD'];
@@ -80,7 +77,8 @@ try {
 
     echo json_encode($response);
 } catch (Exception $e) {
+    error_log('bookings.php error: ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['error' => 'Internal server error', 'message' => $e->getMessage()]);
+    echo json_encode(['error' => 'Internal server error']);
 }
 ?>

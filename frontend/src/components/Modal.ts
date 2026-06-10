@@ -1,4 +1,35 @@
 // Modal Component
+
+/**
+ * Lightweight HTML sanitizer — strips <script>, event-handler attributes, and
+ * javascript: href/src values. Use this whenever modal body content may originate
+ * from an API response or user-provided data.
+ */
+function sanitizeHtml(dirty: string): string {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = dirty;
+
+  const dangerousTags = tmp.querySelectorAll('script,style,object,embed,form,base');
+  dangerousTags.forEach(el => el.remove());
+
+  const allElements = tmp.querySelectorAll('*');
+  allElements.forEach(el => {
+    Array.from(el.attributes).forEach(attr => {
+      const name = attr.name.toLowerCase();
+      if (name.startsWith('on') || name === 'srcdoc') {
+        el.removeAttribute(attr.name);
+        return;
+      }
+      if ((name === 'href' || name === 'src' || name === 'action') &&
+          /^\s*javascript\s*:/i.test(attr.value)) {
+        el.removeAttribute(attr.name);
+      }
+    });
+  });
+
+  return tmp.innerHTML;
+}
+
 export class Modal {
   private modal!: HTMLElement;
   private isOpen: boolean = false;
@@ -50,7 +81,7 @@ export class Modal {
     const confirmBtn = this.modal.querySelector('#modal-confirm') as HTMLElement;
 
     if (titleEl) titleEl.textContent = title;
-    if (bodyEl) bodyEl.innerHTML = content;
+    if (bodyEl) bodyEl.innerHTML = sanitizeHtml(content);
 
     if (onConfirm) {
       confirmBtn.addEventListener('click', () => {

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/cors.php';
 /**
  * Time-Series Database API Endpoint
  *
@@ -17,16 +18,7 @@ $middleware = new Middleware($db, $logger);
 $timeSeriesDB = new TimeSeriesDatabase($db, $logger);
 
 // Set headers
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-
 // Handle preflight OPTIONS request
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
-}
-
 // Get request method and path
 $method = $_SERVER['REQUEST_METHOD'];
 $request = $_SERVER['REQUEST_URI'];
@@ -421,7 +413,7 @@ function deleteTimeSeriesData($table, $conditions)
         return ['success' => true, 'message' => 'Data deleted successfully', 'affected_rows' => $stmt->rowCount()];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 

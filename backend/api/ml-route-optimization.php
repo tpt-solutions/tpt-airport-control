@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/cors.php';
 /**
  * Machine Learning Route Optimization API Endpoint
  *
@@ -21,16 +22,7 @@ $timeSeriesDB = new TimeSeriesDatabase($db, $logger);
 $mlOptimizer = new MachineLearningRouteOptimization($db, $logger, $spatialIndex, $timeSeriesDB);
 
 // Set headers
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-
 // Handle preflight OPTIONS request
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
-}
-
 // Get request method and path
 $method = $_SERVER['REQUEST_METHOD'];
 $request = $_SERVER['REQUEST_URI'];
@@ -571,7 +563,7 @@ function trainModel($modelType, $config)
         ];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -613,7 +605,7 @@ function addTrainingData($data)
         return ['success' => true, 'message' => 'Training data added successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -658,7 +650,7 @@ function evaluateModel($modelName, $config)
         ];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -685,7 +677,7 @@ function updateModel($modelId, $updateData)
         return ['success' => true, 'message' => 'Model updated successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -724,7 +716,7 @@ function retrainModel($modelId, $config)
         ];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -742,7 +734,7 @@ function deleteModel($modelId)
         return ['success' => true, 'message' => 'Model deleted successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -760,6 +752,6 @@ function deleteTrainingData($dataId)
         return ['success' => true, 'message' => 'Training data deleted successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }

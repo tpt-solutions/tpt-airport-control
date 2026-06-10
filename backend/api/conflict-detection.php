@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/cors.php';
 /**
  * Predictive Conflict Detection API Endpoint
  *
@@ -23,16 +24,7 @@ $mlOptimizer = new MachineLearningRouteOptimization($db, $logger, $spatialIndex,
 $conflictDetector = new PredictiveConflictDetection($db, $logger, $spatialIndex, $timeSeriesDB, $mlOptimizer);
 
 // Set headers
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-
 // Handle preflight OPTIONS request
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
-}
-
 // Get request method and path
 $method = $_SERVER['REQUEST_METHOD'];
 $request = $_SERVER['REQUEST_URI'];
@@ -710,7 +702,7 @@ function acknowledgeAlert($alertId, $user)
         return ['success' => true, 'message' => 'Alert acknowledged successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -764,7 +756,7 @@ function trainPredictionModel($modelType, $config)
         ];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -792,7 +784,7 @@ function updatePrediction($conflictId, $updateData)
         return ['success' => true, 'message' => 'Prediction updated successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -820,7 +812,7 @@ function updateScenario($scenarioId, $updateData)
         return ['success' => true, 'message' => 'Scenario updated successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -847,7 +839,7 @@ function updatePredictionModel($modelId, $updateData)
         return ['success' => true, 'message' => 'Model updated successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -865,7 +857,7 @@ function deletePrediction($conflictId)
         return ['success' => true, 'message' => 'Prediction deleted successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -883,7 +875,7 @@ function deleteScenario($scenarioId)
         return ['success' => true, 'message' => 'Scenario deleted successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -901,6 +893,6 @@ function deleteAlert($alertId)
         return ['success' => true, 'message' => 'Alert deleted successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }

@@ -55,8 +55,8 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (request.method !== 'GET') return;
 
-  // API requests - Network only with offline fallback
-  if (url.pathname.startsWith('/backend/api/')) {
+  // API requests - pass through to network; never cache auth tokens or PII.
+  if (url.pathname.startsWith('/backend/api/') || url.pathname.startsWith('/api/')) {
     event.respondWith(handleApiRequest(request));
     return;
   }
@@ -87,26 +87,16 @@ self.addEventListener('fetch', (event) => {
 });
 
 /**
- * Handle API requests with offline support
+ * Handle API requests — network only, never cached.
+ * Caching API responses would store auth tokens and passenger PII in browser storage.
  */
 async function handleApiRequest(request) {
   try {
-    const response = await fetch(request);
-    const cache = await caches.open(CACHE_NAME);
-    cache.put(request, response.clone());
-    return response;
+    return await fetch(request);
   } catch (error) {
-    const cachedResponse = await caches.match(request);
-    if (cachedResponse) {
-      console.log('[SW] Serving API from cache:', request.url);
-      return cachedResponse;
-    }
-    
-    // Return offline error response
     return new Response(JSON.stringify({
       error: 'offline',
-      message: 'You are currently offline. Please check your connection.',
-      cached: true
+      message: 'You are currently offline. Please check your connection.'
     }), {
       status: 503,
       headers: { 'Content-Type': 'application/json' }

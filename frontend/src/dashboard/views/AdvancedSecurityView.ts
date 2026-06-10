@@ -1,4 +1,5 @@
-import { DashboardApiService } from '../services/DashboardApiService.js';
+﻿import { DashboardApiService } from '../services/DashboardApiService.js';
+import { AuthManager } from '../../auth.js';
 import type { User } from '../types.js';
 
 interface SecurityStats {
@@ -65,25 +66,25 @@ export class AdvancedSecurityView {
       const [statsResponse, alertsResponse, threatsResponse, camerasResponse] = await Promise.all([
         fetch('/backend/api/advanced-security/dashboard', {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
             'Content-Type': 'application/json'
           }
         }),
         fetch('/backend/api/advanced-security/alerts?status=unresolved', {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
             'Content-Type': 'application/json'
           }
         }),
         fetch('/backend/api/advanced-security/threats?limit=10', {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
             'Content-Type': 'application/json'
           }
         }),
         fetch('/backend/api/advanced-security/cameras', {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
             'Content-Type': 'application/json'
           }
         })

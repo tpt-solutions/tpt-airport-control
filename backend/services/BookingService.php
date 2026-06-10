@@ -4,8 +4,10 @@ require_once __DIR__ . '/../src/Logger.php';
 
 class BookingService {
     private $bookingRepository;
+    private $pdo;
 
     public function __construct($pdo) {
+        $this->pdo = $pdo;
         $this->bookingRepository = new BookingRepository($pdo);
     }
 
@@ -78,31 +80,53 @@ class BookingService {
 
     public function createBooking($data) {
         try {
-            // Validate required fields
             $this->validateBookingData($data, ['passenger_id', 'flight_id']);
 
-            // Check if passenger exists
             if (!$this->passengerExists($data['passenger_id'])) {
                 throw new Exception('Passenger not found');
             }
 
-            // Check if flight exists and is available for booking
-            $flightInfo = $this->validateFlightForBooking($data['flight_id']);
-            if (!$flightInfo) {
+            // Atomic seat-allocation block: lock the flight row so concurrent requests
+            // cannot both pass the capacity check and both create a booking.
+            $this->pdo->beginTransaction();
+
+            $flightStmt = $this->pdo->prepare("
+                SELECT f.id, f.status, f.scheduled_departure, ac.capacity
+                FROM flights f
+                JOIN aircraft ac ON f.aircraft_id = ac.id
+                WHERE f.id = ?
+                FOR UPDATE
+            ");
+            $flightStmt->execute([$data['flight_id']]);
+            $flightInfo = $flightStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$flightInfo || $flightInfo['status'] === 'cancelled' ||
+                strtotime($flightInfo['scheduled_departure']) < time()) {
+                $this->pdo->rollBack();
                 throw new Exception('Flight not found or not available for booking');
             }
 
-            // Check if passenger already has a booking for this flight
             if ($this->bookingRepository->exists($data['passenger_id'], $data['flight_id'])) {
+                $this->pdo->rollBack();
                 throw new Exception('Passenger already has a booking for this flight');
             }
 
-            // Set default values
-            $data['total_amount'] = $data['total_amount'] ?? $this->calculateBookingAmount($flightInfo);
-            $data['currency'] = $data['currency'] ?? 'USD';
+            $countStmt = $this->pdo->prepare(
+                "SELECT COUNT(*) FROM bookings WHERE flight_id = ? AND status NOT IN ('cancelled')"
+            );
+            $countStmt->execute([$data['flight_id']]);
+            if ((int) $countStmt->fetchColumn() >= (int) $flightInfo['capacity']) {
+                $this->pdo->rollBack();
+                throw new Exception('Flight is fully booked');
+            }
+
+            $data['total_amount']   = $data['total_amount']   ?? $this->calculateBookingAmount($flightInfo);
+            $data['currency']       = $data['currency']       ?? 'USD';
             $data['payment_status'] = $data['payment_status'] ?? 'paid';
 
             $booking = $this->bookingRepository->create($data);
+
+            $this->pdo->commit();
 
             Logger::info('Booking created: ' . $booking->getBookingReference() . ' for passenger ' . $data['passenger_id']);
 
@@ -113,6 +137,9 @@ class BookingService {
                 'booking' => $booking->toApiArray()
             ];
         } catch (Exception $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             Logger::error('Failed to create booking: ' . $e->getMessage());
             throw $e;
         }

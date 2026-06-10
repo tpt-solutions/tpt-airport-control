@@ -161,7 +161,7 @@ class SupportAPI
             ], 201);
         } catch (Exception $e) {
             $this->logger->error("Failed to create ticket", ['error' => $e->getMessage()]);
-            $this->sendError($e->getMessage(), 400);
+            error_log('API error: ' . $e->getMessage()); $this->sendError('An internal error occurred', 400);
         }
     }
 
@@ -184,7 +184,7 @@ class SupportAPI
             ]);
         } catch (Exception $e) {
             $this->logger->error("Failed to add comment", ['ticket_id' => $ticketId, 'error' => $e->getMessage()]);
-            $this->sendError($e->getMessage(), 400);
+            error_log('API error: ' . $e->getMessage()); $this->sendError('An internal error occurred', 400);
         }
     }
 
@@ -203,7 +203,7 @@ class SupportAPI
             ]);
         } catch (Exception $e) {
             $this->logger->error("Failed to close ticket", ['ticket_id' => $ticketId, 'error' => $e->getMessage()]);
-            $this->sendError($e->getMessage(), 400);
+            error_log('API error: ' . $e->getMessage()); $this->sendError('An internal error occurred', 400);
         }
     }
 

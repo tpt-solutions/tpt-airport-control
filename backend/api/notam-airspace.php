@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/cors.php';
 /**
  * NOTAM & Airspace Data API Endpoint
  *
@@ -17,16 +18,7 @@ $middleware = new Middleware($db, $logger);
 $notamAirspaceIntegration = new NotamAirspaceIntegration($db, $logger);
 
 // Set headers
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-
 // Handle preflight OPTIONS request
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
-}
-
 // Get request method and path
 $method = $_SERVER['REQUEST_METHOD'];
 $request = $_SERVER['REQUEST_URI'];
@@ -489,7 +481,7 @@ function softDeleteNOTAM($notamId, $integration)
         $stmt->execute([$notamId]);
         return ['success' => true, 'message' => 'NOTAM cancelled'];
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -508,6 +500,6 @@ function deactivateRestriction($restrictionId, $integration)
         $stmt->execute([$restrictionId]);
         return ['success' => true, 'message' => 'Restriction deactivated'];
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }

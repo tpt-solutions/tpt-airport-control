@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/cors.php';
 /**
  * Device Sync API for Airport Operations Simulator
  * Handles cross-device synchronization of user data
@@ -7,15 +8,6 @@
 require_once __DIR__ . '/../src/Config.php';
 require_once __DIR__ . '/../src/Logger.php';
 require_once __DIR__ . '/../services/DeviceSyncService.php';
-
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
-}
 
 class SyncAPI
 {
@@ -146,7 +138,7 @@ class SyncAPI
             ]);
         } catch (Exception $e) {
             $this->logger->error("Failed to register device", ['error' => $e->getMessage()]);
-            $this->sendError($e->getMessage(), 400);
+            error_log('API error: ' . $e->getMessage()); $this->sendError('An internal error occurred', 400);
         }
     }
 
@@ -169,7 +161,7 @@ class SyncAPI
             $this->sendResponse($result);
         } catch (Exception $e) {
             $this->logger->error("Failed to sync progress", ['error' => $e->getMessage()]);
-            $this->sendError($e->getMessage(), 500);
+            error_log('API error: ' . $e->getMessage()); $this->sendError('An internal error occurred', 500);
         }
     }
 
@@ -192,7 +184,7 @@ class SyncAPI
             $this->sendResponse($result);
         } catch (Exception $e) {
             $this->logger->error("Failed to sync preferences", ['error' => $e->getMessage()]);
-            $this->sendError($e->getMessage(), 500);
+            error_log('API error: ' . $e->getMessage()); $this->sendError('An internal error occurred', 500);
         }
     }
 
@@ -215,7 +207,7 @@ class SyncAPI
             $this->sendResponse($result);
         } catch (Exception $e) {
             $this->logger->error("Failed to sync achievements", ['error' => $e->getMessage()]);
-            $this->sendError($e->getMessage(), 500);
+            error_log('API error: ' . $e->getMessage()); $this->sendError('An internal error occurred', 500);
         }
     }
 
@@ -270,7 +262,7 @@ class SyncAPI
             $this->sendResponse($result);
         } catch (Exception $e) {
             $this->logger->error("Failed to force sync all devices", ['error' => $e->getMessage()]);
-            $this->sendError($e->getMessage(), 500);
+            error_log('API error: ' . $e->getMessage()); $this->sendError('An internal error occurred', 500);
         }
     }
 
@@ -293,7 +285,7 @@ class SyncAPI
             $this->sendResponse($result);
         } catch (Exception $e) {
             $this->logger->error("Failed to resolve conflict", ['error' => $e->getMessage()]);
-            $this->sendError($e->getMessage(), 500);
+            error_log('API error: ' . $e->getMessage()); $this->sendError('An internal error occurred', 500);
         }
     }
 
@@ -315,7 +307,7 @@ class SyncAPI
             $this->sendResponse($result);
         } catch (Exception $e) {
             $this->logger->error("Failed to deactivate device", ['error' => $e->getMessage()]);
-            $this->sendError($e->getMessage(), 500);
+            error_log('API error: ' . $e->getMessage()); $this->sendError('An internal error occurred', 500);
         }
     }
 

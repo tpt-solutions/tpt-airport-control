@@ -15,12 +15,21 @@ export class NotificationManager {
       'bg-blue-500'
     } text-white`;
 
-    notification.innerHTML = `
-      <div class="flex items-center">
-        <div class="flex-1">${message}</div>
-        <button class="ml-4 text-white hover:text-gray-200" onclick="this.parentElement.parentElement.remove()">×</button>
-      </div>
-    `;
+    const inner = document.createElement('div');
+    inner.className = 'flex items-center';
+
+    const msgEl = document.createElement('div');
+    msgEl.className = 'flex-1';
+    msgEl.textContent = message;
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'ml-4 text-white hover:text-gray-200';
+    closeBtn.textContent = '×';
+    closeBtn.addEventListener('click', () => notification.remove());
+
+    inner.appendChild(msgEl);
+    inner.appendChild(closeBtn);
+    notification.appendChild(inner);
 
     this.container.appendChild(notification);
 

@@ -1,4 +1,5 @@
-import { DashboardApiService } from '../services/DashboardApiService.js';
+﻿import { DashboardApiService } from '../services/DashboardApiService.js';
+import { AuthManager } from '../../auth.js';
 import type { User } from '../types.js';
 
 interface OperationsReport {
@@ -166,7 +167,7 @@ export class DroneReportsView {
     // Fetch operations data from API
     const response = await fetch(`/backend/api/drones/reports/operations?start_date=${startDate}&end_date=${endDate}`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
         'Content-Type': 'application/json'
       }
     });
@@ -280,7 +281,7 @@ export class DroneReportsView {
     // Fetch airspace utilization data
     const response = await fetch(`/backend/api/drones/reports/airspace?start_date=${startDate}&end_date=${endDate}`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
         'Content-Type': 'application/json'
       }
     });
@@ -376,13 +377,13 @@ export class DroneReportsView {
     const [incidentsResponse, violationsResponse] = await Promise.all([
       fetch(`/backend/api/drones/incidents?start_date=${startDate}&end_date=${endDate}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
           'Content-Type': 'application/json'
         }
       }),
       fetch(`/backend/api/drones/violations?start_date=${startDate}&end_date=${endDate}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
           'Content-Type': 'application/json'
         }
       })

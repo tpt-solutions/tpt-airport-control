@@ -115,14 +115,18 @@ class SubscriptionService
 
     private function initializeStripe()
     {
-        // Load Stripe keys from environment
-        $this->stripeSecretKey = getenv('STRIPE_SECRET_KEY') ?: 'sk_test_your_stripe_secret_key';
-        $this->stripePublishableKey = getenv('STRIPE_PUBLISHABLE_KEY') ?: 'pk_test_your_stripe_publishable_key';
+        $this->stripeSecretKey = getenv('STRIPE_SECRET_KEY') ?: null;
+        $this->stripePublishableKey = getenv('STRIPE_PUBLISHABLE_KEY') ?: null;
 
-        // Include Stripe PHP SDK if available
+        if (!$this->stripeSecretKey) {
+            error_log('SECURITY WARNING: STRIPE_SECRET_KEY not set. Stripe integration will be unavailable.');
+        }
+
         if (file_exists(__DIR__ . '/../vendor/stripe/stripe-php/init.php')) {
             require_once __DIR__ . '/../vendor/stripe/stripe-php/init.php';
-            \Stripe\Stripe::setApiKey($this->stripeSecretKey);
+            if ($this->stripeSecretKey) {
+                \Stripe\Stripe::setApiKey($this->stripeSecretKey);
+            }
         }
     }
 
@@ -441,7 +445,10 @@ class SubscriptionService
         }
 
         try {
-            $endpointSecret = getenv('STRIPE_WEBHOOK_SECRET') ?: 'whsec_your_webhook_secret';
+            $endpointSecret = getenv('STRIPE_WEBHOOK_SECRET') ?: null;
+            if (!$endpointSecret) {
+                throw new Exception('STRIPE_WEBHOOK_SECRET is not configured. Cannot verify webhook signature.');
+            }
             $event = \Stripe\Webhook::constructEvent($payload, $signature, $endpointSecret);
 
             switch ($event->type) {

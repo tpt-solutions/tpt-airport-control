@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/cors.php';
 /**
  * Spatial Indexing and Geographic Queries API Endpoint
  *
@@ -17,16 +18,7 @@ $middleware = new Middleware($db, $logger);
 $spatialIndex = new SpatialIndexing($db, $logger);
 
 // Set headers
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-
 // Handle preflight OPTIONS request
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
-}
-
 // Get request method and path
 $method = $_SERVER['REQUEST_METHOD'];
 $request = $_SERVER['REQUEST_URI'];
@@ -608,7 +600,7 @@ function updateAirport($id, $updateData)
         return ['success' => true, 'message' => 'Airport updated successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -635,7 +627,7 @@ function updateAirspaceSector($id, $updateData)
         return ['success' => true, 'message' => 'Airspace sector updated successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -653,7 +645,7 @@ function deleteAirport($id)
         return ['success' => true, 'message' => 'Airport deleted successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -671,7 +663,7 @@ function deleteAirspaceSector($id)
         return ['success' => true, 'message' => 'Airspace sector deleted successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 

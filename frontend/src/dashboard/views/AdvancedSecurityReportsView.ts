@@ -1,4 +1,5 @@
-import { DashboardApiService } from '../services/DashboardApiService.js';
+﻿import { DashboardApiService } from '../services/DashboardApiService.js';
+import { AuthManager } from '../../auth.js';
 import type { User } from '../types.js';
 
 interface SecurityReport {
@@ -108,19 +109,19 @@ export class AdvancedSecurityReportsView {
       const [reportResponse, incidentsResponse, violationsResponse] = await Promise.all([
         fetch(`/backend/api/advanced-security/report?start_date=${this.startDate}&end_date=${this.endDate}`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
             'Content-Type': 'application/json'
           }
         }),
         fetch(`/backend/api/advanced-security/incidents?start_date=${this.startDate}&end_date=${this.endDate}`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
             'Content-Type': 'application/json'
           }
         }),
         fetch(`/backend/api/advanced-security/violations?start_date=${this.startDate}&end_date=${this.endDate}`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
             'Content-Type': 'application/json'
           }
         })

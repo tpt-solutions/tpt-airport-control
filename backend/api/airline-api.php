@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/cors.php';
 /**
  * Airline API Connector Endpoint
  *
@@ -15,30 +16,22 @@ $db = getDatabaseConnection();
 $logger = new Logger($db);
 $middleware = new Middleware($db, $logger);
 
-// API keys configuration (in production, these should be in environment variables)
+// API keys — must be configured via environment variables. Missing keys cause the
+// integration to return a clear "not configured" error rather than silently using a placeholder.
 $apiKeys = [
     'amadeus' => [
-        'client_id' => getenv('AMADEUS_CLIENT_ID') ?: 'your_amadeus_client_id',
-        'client_secret' => getenv('AMADEUS_CLIENT_SECRET') ?: 'your_amadeus_client_secret'
+        'client_id' => getenv('AMADEUS_CLIENT_ID') ?: null,
+        'client_secret' => getenv('AMADEUS_CLIENT_SECRET') ?: null,
     ],
     'sabre' => [
-        'token' => getenv('SABRE_TOKEN') ?: 'your_sabre_token'
-    ]
+        'token' => getenv('SABRE_TOKEN') ?: null,
+    ],
 ];
 
 $airlineConnector = new AirlineAPIConnector($db, $logger, $apiKeys);
 
 // Set headers
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-
 // Handle preflight OPTIONS request
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
-}
-
 // Get request method and path
 $method = $_SERVER['REQUEST_METHOD'];
 $request = $_SERVER['REQUEST_URI'];
@@ -332,6 +325,6 @@ function cancelBooking($bookingId, $connector)
 
     } catch (Exception $e) {
         $GLOBALS['logger']->error("Failed to cancel booking", ['error' => $e->getMessage()]);
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }

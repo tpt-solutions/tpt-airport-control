@@ -278,7 +278,7 @@ try {
     
 } catch (Exception $e) {
     $logger->error('Account API error', [
-        'error' => $e->getMessage(),
+        'error' => 'An internal error occurred',
         'user_id' => $user['user_id']
     ]);
     

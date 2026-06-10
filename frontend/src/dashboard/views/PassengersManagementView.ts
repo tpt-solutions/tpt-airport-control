@@ -1,4 +1,5 @@
 import { DashboardApiService } from '../services/DashboardApiService.js';
+import { NotificationManager } from '../../components/NotificationManager.js';
 import type { User } from '../types.js';
 
 interface Passenger {
@@ -16,9 +17,11 @@ interface Passenger {
 
 export class PassengersManagementView {
   private apiService: DashboardApiService;
+  private notifications: NotificationManager;
 
   constructor(_container: HTMLElement) {
     this.apiService = new DashboardApiService();
+    this.notifications = new NotificationManager(document.body);
   }
 
   async render(_user: User): Promise<string> {
@@ -143,24 +146,22 @@ export class PassengersManagementView {
   }
 
   private openAddModal(): void {
-    // Show add passenger modal (similar to flights)
-    console.log('Add passenger modal - implement form');
+    window.dispatchEvent(new CustomEvent('openAddPassengerModal'));
   }
 
   private async editPassenger(id: number): Promise<void> {
-    console.log('Edit passenger ID:', id);
-    // Implement edit modal using fetch('/api/passengers/' + id)
+    window.dispatchEvent(new CustomEvent('openEditPassengerModal', { detail: { id } }));
   }
 
   private async deletePassenger(id: number): Promise<void> {
-    if (confirm('Are you sure you want to delete this passenger?')) {
-      try {
-        await this.apiService.callApi('/api/passengers/' + id, 'DELETE');
-        window.dispatchEvent(new CustomEvent('refreshPassengers'));
-      } catch (error) {
-        console.error('Failed to delete passenger:', error);
-        alert('Failed to delete passenger');
-      }
+    if (!confirm('Are you sure you want to delete this passenger?')) return;
+    try {
+      await this.apiService.callApi('/api/passengers/' + id, 'DELETE');
+      this.notifications.success('Passenger deleted successfully.');
+      window.dispatchEvent(new CustomEvent('refreshPassengers'));
+    } catch (error) {
+      console.error('Failed to delete passenger:', error);
+      this.notifications.error('Failed to delete passenger. They may have active bookings.');
     }
   }
 }

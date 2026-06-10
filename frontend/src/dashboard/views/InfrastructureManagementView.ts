@@ -1,4 +1,5 @@
-import { DashboardApiService } from '../services/DashboardApiService.js';
+﻿import { DashboardApiService } from '../services/DashboardApiService.js';
+import { AuthManager } from '../../auth.js';
 import type { User } from '../types.js';
 
 interface InfrastructureStats {
@@ -53,7 +54,7 @@ export class InfrastructureManagementView {
       // Fetch infrastructure dashboard data
       const response = await fetch('/backend/api/infrastructure/dashboard', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
           'Content-Type': 'application/json'
         }
       });

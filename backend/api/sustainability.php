@@ -61,7 +61,8 @@ try {
     }
 } catch (Exception $e) {
     error_log("Sustainability API Error: " . $e->getMessage());
-    $apiResponse->error($e->getMessage(), 500);
+    error_log('API error: ' . $e->getMessage());
+    $apiResponse->error('An internal error occurred', 500);
 }
 
 /**

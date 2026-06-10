@@ -1,4 +1,5 @@
-import { DashboardApiService } from '../services/DashboardApiService.js';
+﻿import { DashboardApiService } from '../services/DashboardApiService.js';
+import { AuthManager } from '../../auth.js';
 import type { User } from '../types.js';
 
 interface Module {
@@ -368,7 +369,7 @@ export class ModuleManagementView {
     try {
       const response = await fetch('/backend/api/modules', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
           'Content-Type': 'application/json'
         }
       });
@@ -385,7 +386,7 @@ export class ModuleManagementView {
     try {
       const response = await fetch('/backend/api/modules/health', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
           'Content-Type': 'application/json'
         }
       });
@@ -402,7 +403,7 @@ export class ModuleManagementView {
     try {
       const response = await fetch('/backend/api/modules/audit', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
           'Content-Type': 'application/json'
         }
       });
@@ -420,7 +421,7 @@ export class ModuleManagementView {
       const response = await fetch(`/backend/api/modules/${moduleId}/${action}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
           'Content-Type': 'application/json'
         }
       });

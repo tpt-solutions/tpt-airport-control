@@ -1,4 +1,5 @@
-import { DashboardApiService } from '../services/DashboardApiService.js';
+﻿import { DashboardApiService } from '../services/DashboardApiService.js';
+import { AuthManager } from '../../auth.js';
 import type { User } from '../types.js';
 
 interface BorderReport {
@@ -89,19 +90,19 @@ export class CustomsReportsView {
       const [reportResponse, inspectionsResponse, incidentsResponse] = await Promise.all([
         fetch(`/backend/api/customs/report?start_date=${this.startDate}&end_date=${this.endDate}`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
             'Content-Type': 'application/json'
           }
         }),
         fetch(`/backend/api/customs/inspections?start_date=${this.startDate}&end_date=${this.endDate}`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
             'Content-Type': 'application/json'
           }
         }),
         fetch(`/backend/api/customs/incidents?start_date=${this.startDate}&end_date=${this.endDate}`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
             'Content-Type': 'application/json'
           }
         })

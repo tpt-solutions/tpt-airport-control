@@ -1,4 +1,5 @@
-import { DashboardApiService } from '../services/DashboardApiService.js';
+﻿import { DashboardApiService } from '../services/DashboardApiService.js';
+import { AuthManager } from '../../auth.js';
 import type { User } from '../types.js';
 
 interface UtilizationReport {
@@ -176,7 +177,7 @@ export class InfrastructureReportsView {
     // Fetch utilization data from API
     const response = await fetch(`/backend/api/infrastructure/reports?type=utilization&start_date=${startDate}&end_date=${endDate}`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
         'Content-Type': 'application/json'
       }
     });
@@ -262,7 +263,7 @@ export class InfrastructureReportsView {
     // Fetch maintenance data from API
     const response = await fetch(`/backend/api/infrastructure/reports?type=maintenance&start_date=${startDate}&end_date=${endDate}`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
         'Content-Type': 'application/json'
       }
     });
@@ -369,7 +370,7 @@ export class InfrastructureReportsView {
     // Fetch performance data from API
     const response = await fetch(`/backend/api/infrastructure/reports?type=performance&start_date=${startDate}&end_date=${endDate}`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
         'Content-Type': 'application/json'
       }
     });

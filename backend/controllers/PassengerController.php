@@ -37,8 +37,8 @@ class PassengerController {
             }
 
             // Pagination
-            $pagination['page'] = (int)($_GET['page'] ?? 1);
-            $pagination['limit'] = (int)($_GET['limit'] ?? 50);
+            $pagination['page'] = max(1, (int)($_GET['page'] ?? 1));
+            $pagination['limit'] = min(100, max(1, (int)($_GET['limit'] ?? 50)));
             $pagination['offset'] = ($pagination['page'] - 1) * $pagination['limit'];
 
             $result = $this->passengerService->getPassengers($filters, $pagination);
@@ -46,7 +46,7 @@ class PassengerController {
             return $result;
         } catch (Exception $e) {
             http_response_code(500);
-            return ['error' => 'Failed to retrieve passengers', 'message' => $e->getMessage()];
+            return ['error' => 'Failed to retrieve passengers', 'message' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -80,7 +80,8 @@ class PassengerController {
             } else {
                 http_response_code(500);
             }
-            return ['error' => $e->getMessage()];
+            error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -101,7 +102,8 @@ class PassengerController {
             } else {
                 http_response_code(500);
             }
-            return ['error' => $e->getMessage()];
+            error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -122,7 +124,8 @@ class PassengerController {
             } else {
                 http_response_code(500);
             }
-            return ['error' => $e->getMessage()];
+            error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -156,7 +159,8 @@ class PassengerController {
             } else {
                 http_response_code(500);
             }
-            return ['error' => $e->getMessage()];
+            error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -187,7 +191,8 @@ class PassengerController {
             } else {
                 http_response_code(500);
             }
-            return ['error' => $e->getMessage()];
+            error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -231,7 +236,8 @@ class PassengerController {
             } else {
                 http_response_code(500);
             }
-            return ['error' => $e->getMessage()];
+            error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -254,7 +260,8 @@ class PassengerController {
             } else {
                 http_response_code(500);
             }
-            return ['error' => $e->getMessage()];
+            error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -285,7 +292,7 @@ class PassengerController {
             return $result;
         } catch (Exception $e) {
             http_response_code(500);
-            return ['error' => 'Search failed', 'message' => $e->getMessage()];
+            return ['error' => 'Search failed', 'message' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -302,7 +309,7 @@ class PassengerController {
             return $result;
         } catch (Exception $e) {
             http_response_code(500);
-            return ['error' => 'Failed to retrieve flight passengers', 'message' => $e->getMessage()];
+            return ['error' => 'Failed to retrieve flight passengers', 'message' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -319,7 +326,7 @@ class PassengerController {
             return $result;
         } catch (Exception $e) {
             http_response_code(500);
-            return ['error' => 'Failed to retrieve statistics', 'message' => $e->getMessage()];
+            return ['error' => 'Failed to retrieve statistics', 'message' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -336,7 +343,7 @@ class PassengerController {
             return $result;
         } catch (Exception $e) {
             http_response_code(500);
-            return ['error' => 'Failed to retrieve nationality distribution', 'message' => $e->getMessage()];
+            return ['error' => 'Failed to retrieve nationality distribution', 'message' => 'An error occurred. Please try again.'];
         }
     }
 }

@@ -66,7 +66,8 @@ try {
     }
 } catch (Exception $e) {
     error_log("Passenger Alerts API Error: " . $e->getMessage());
-    $apiResponse->error($e->getMessage(), 500);
+    error_log('API error: ' . $e->getMessage());
+    $apiResponse->error('An internal error occurred', 500);
 }
 
 /**

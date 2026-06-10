@@ -1,12 +1,14 @@
 import { DashboardApiService } from '../services/DashboardApiService.js';
 import { FlightMapView } from './FlightMapView.js';
 import { ATC3DVisualization } from '../../atc-3d-visualization.js';
+import { NotificationManager } from '../../components/NotificationManager.js';
 import type { Flight, User } from '../types.js';
 
 type ViewMode = 'list' | 'map' | '3d';
 
 export class FlightsManagementView {
   private apiService: DashboardApiService;
+  private notifications: NotificationManager;
   private currentViewMode: ViewMode = 'list';
   private mapView: FlightMapView | null = null;
   private atc3dView: ATC3DVisualization | null = null;
@@ -15,6 +17,7 @@ export class FlightsManagementView {
 
   constructor(_container: HTMLElement) {
     this.apiService = new DashboardApiService();
+    this.notifications = new NotificationManager(document.body);
   }
 
   async render(user: User): Promise<string> {
@@ -508,7 +511,7 @@ export class FlightsManagementView {
       window.dispatchEvent(new CustomEvent('refreshFlights'));
     } catch (error) {
       console.error('Failed to create flight:', error);
-      alert('Failed to create flight. Please check the form and try again.');
+      this.notifications.error('Failed to create flight. Please check the form and try again.');
     }
   }
 }

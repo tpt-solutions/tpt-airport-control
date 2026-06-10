@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/cors.php';
 
 /**
  * Emergency Management API
@@ -6,9 +7,9 @@
  * RESTful API for emergency incident management, crisis response, and disaster recovery
  */
 
-require_once '../src/ApiResponse.php';
-require_once '../models/EmergencyManagement.php';
-require_once '../src/Auth.php';
+require_once __DIR__ . '/../src/ApiResponse.php';
+require_once __DIR__ . '/../models/EmergencyManagement.php';
+require_once __DIR__ . '/../src/Auth.php';
 
 // Initialize components
 $apiResponse = new ApiResponse();
@@ -66,7 +67,8 @@ try {
     }
 } catch (Exception $e) {
     error_log("Emergency API Error: " . $e->getMessage());
-    $apiResponse->error($e->getMessage(), 500);
+    error_log('API error: ' . $e->getMessage());
+    $apiResponse->error('An internal error occurred', 500);
 }
 
 /**
@@ -74,9 +76,9 @@ try {
  */
 function handleGetRequest($resource, $action, $id, $emergencyManager, $user, $apiResponse)
 {
-    // Check if user has appropriate permissions
-    if (!$user || !in_array($user['role'], ['super_admin', 'admin', 'operator', 'passenger'])) {
-        $apiResponse->error('Insufficient permissions', 403);
+    // Check if user has appropriate permissions (passenger role excluded — emergency data is sensitive)
+    if (!$user || !in_array($user['role'], ['super_admin', 'admin', 'operator'])) {
+        $apiResponse->error('Operator access required', 403);
         return;
     }
 

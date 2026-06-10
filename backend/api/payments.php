@@ -1,13 +1,5 @@
 <?php
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
-}
-
+require_once __DIR__ . '/cors.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../src/Auth.php';
 require_once __DIR__ . '/../src/Middleware.php';
@@ -42,11 +34,20 @@ try {
                     case 'webhook':
                         handlePaddleWebhook($pdo);
                         break;
+                    case 'stripe_webhook':
+                        handleStripeWebhook($pdo);
+                        break;
                     case 'refund':
                         processRefund($pdo);
                         break;
                     case 'create_checkout':
-                        createCheckoutSession($pdo);
+                        // Defaults to Paddle; pass payment_provider=stripe for Stripe Checkout
+                        $provider = $_GET['provider'] ?? 'paddle';
+                        if ($provider === 'stripe') {
+                            createStripeCheckoutSession($pdo);
+                        } else {
+                            createCheckoutSession($pdo);
+                        }
                         break;
                     default:
                         http_response_code(400);
@@ -82,8 +83,9 @@ try {
             break;
     }
 } catch (Exception $e) {
+    error_log('payments.php unhandled exception: ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['error' => 'Internal server error', 'message' => $e->getMessage()]);
+    echo json_encode(['error' => 'Internal server error']);
 }
 
 function getPayments($pdo) {
@@ -288,7 +290,8 @@ function updatePayment($pdo, $paymentId) {
 
     $allowedFields = [
         'status', 'paddle_transaction_id', 'paddle_subscription_id',
-        'processed_at', 'refunded_amount', 'refund_reason'
+        'stripe_payment_intent_id', 'stripe_session_id',
+        'processed_at', 'refunded_amount', 'refund_reason',
     ];
 
     foreach ($allowedFields as $field) {
@@ -383,9 +386,14 @@ function createCheckoutSession($pdo) {
         return;
     }
 
-    // Paddle API configuration
-    $paddleApiKey = getenv('PADDLE_API_KEY') ?: 'your_paddle_api_key';
+    // Paddle API configuration — must be set via environment variables.
+    $paddleApiKey = getenv('PADDLE_API_KEY') ?: null;
     $paddleEnvironment = getenv('PADDLE_ENVIRONMENT') ?: 'sandbox';
+    if (!$paddleApiKey) {
+        http_response_code(503);
+        echo json_encode(['error' => 'Payment integration is not configured. Set PADDLE_API_KEY.']);
+        return;
+    }
 
     // Create Paddle checkout session
     $checkoutData = [
@@ -448,12 +456,16 @@ function createCheckoutSession($pdo) {
 }
 
 function handlePaddleWebhook($pdo) {
-    // Get webhook data
-    $webhookData = json_decode(file_get_contents('php://input'), true);
+    $rawBody = file_get_contents('php://input');
+    $webhookData = json_decode($rawBody, true);
     $signature = $_SERVER['HTTP_X_PADDLE_SIGNATURE'] ?? '';
 
-    // Verify webhook signature (in production)
-    // $isValidSignature = verifyPaddleSignature($webhookData, $signature);
+    // Reject immediately if signature verification fails or secret is missing.
+    if (!verifyPaddleSignature($rawBody, $signature)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid webhook signature']);
+        return;
+    }
 
     if (!$webhookData) {
         http_response_code(400);
@@ -578,12 +590,15 @@ function handleSubscriptionCancelled($pdo, $data) {
 }
 
 function processRefund($pdo) {
-    // Check permissions
+    // Check permissions — admin only
     if (!Auth::hasPermission('admin', 'users')) {
         http_response_code(403);
         echo json_encode(['error' => 'Access denied']);
         return;
     }
+
+    $currentUser = Auth::getCurrentUser();
+    $processedBy  = $currentUser['user_id'] ?? $currentUser['id'] ?? null;
 
     $data = json_decode(file_get_contents('php://input'), true);
 
@@ -593,9 +608,15 @@ function processRefund($pdo) {
         return;
     }
 
-    $paymentId = $data['payment_id'];
+    $paymentId    = $data['payment_id'];
     $refundAmount = $data['amount'] ?? null;
-    $reason = $data['reason'] ?? 'Customer request';
+    $reason       = trim($data['reason'] ?? 'Customer request');
+
+    if (empty($reason)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Refund reason is required']);
+        return;
+    }
 
     // Get payment details
     $stmt = $pdo->prepare("SELECT * FROM payments WHERE id = ?");
@@ -614,7 +635,15 @@ function processRefund($pdo) {
         return;
     }
 
-    // Calculate refund amount
+    // Enforce refund window: no refunds more than REFUND_WINDOW_DAYS days after payment
+    $refundWindowDays = (int)(getenv('REFUND_WINDOW_DAYS') ?: 30);
+    $paymentDate      = strtotime($payment['created_at'] ?? $payment['processed_at'] ?? 'now');
+    if ($paymentDate && (time() - $paymentDate) > ($refundWindowDays * 86400)) {
+        http_response_code(409);
+        echo json_encode(['error' => "Refund window of {$refundWindowDays} days has passed"]);
+        return;
+    }
+
     $actualRefundAmount = $refundAmount ?? $payment['amount'];
 
     if ($actualRefundAmount > $payment['amount']) {
@@ -623,39 +652,54 @@ function processRefund($pdo) {
         return;
     }
 
-    // In a real implementation, you would call Paddle's refund API
-    // For now, we'll simulate the refund
+    $pdo->beginTransaction();
+    try {
+        $stmt = $pdo->prepare("
+            UPDATE payments
+            SET refunded_amount = ?,
+                refund_reason   = ?,
+                status          = 'refunded',
+                processed_by    = ?,
+                updated_at      = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ");
+        $stmt->execute([$actualRefundAmount, $reason, $processedBy, $paymentId]);
 
-    // Update payment record
-    $stmt = $pdo->prepare("
-        UPDATE payments
-        SET refunded_amount = ?, refund_reason = ?, status = 'refunded', updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-    ");
-    $stmt->execute([$actualRefundAmount, $reason, $paymentId]);
+        if ($actualRefundAmount >= $payment['amount']) {
+            $stmt = $pdo->prepare("UPDATE bookings SET status = 'cancelled' WHERE id = ?");
+            $stmt->execute([$payment['booking_id']]);
+        }
 
-    // Update booking status if fully refunded
-    if ($actualRefundAmount >= $payment['amount']) {
-        $stmt = $pdo->prepare("UPDATE bookings SET status = 'cancelled' WHERE id = ?");
-        $stmt->execute([$payment['booking_id']]);
+        $pdo->commit();
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        Logger::error('Refund transaction failed', ['payment_id' => $paymentId, 'error' => $e->getMessage()]);
+        http_response_code(500);
+        echo json_encode(['error' => 'An internal error occurred. Please try again.']);
+        return;
     }
 
-    Logger::info('Refund processed: Payment ' . $paymentId . ' - Amount: ' . $actualRefundAmount . ' - Reason: ' . $reason);
+    Logger::info('Refund processed', [
+        'payment_id'    => $paymentId,
+        'amount'        => $actualRefundAmount,
+        'processed_by'  => $processedBy,
+        'reason'        => $reason,
+    ]);
 
     echo json_encode([
-        'message' => 'Refund processed successfully',
+        'message'       => 'Refund processed successfully',
         'refund_amount' => $actualRefundAmount
     ]);
 }
 
-// Helper function to verify Paddle webhook signature
-function verifyPaddleSignature($webhookData, $signature) {
+// Verify Paddle webhook signature using the raw request body.
+// Paddle signs the raw body bytes, so we must compare against those — not re-encoded JSON.
+function verifyPaddleSignature(string $rawBody, string $signature): bool {
     $secretKey = getenv('PADDLE_WEBHOOK_SECRET');
-    if (!$secretKey) {
+    if (!$secretKey || !$signature) {
         return false;
     }
-
-    $expectedSignature = hash_hmac('sha256', json_encode($webhookData), $secretKey);
+    $expectedSignature = hash_hmac('sha256', $rawBody, $secretKey);
     return hash_equals($expectedSignature, $signature);
 }
 
@@ -708,5 +752,194 @@ function getRevenueByCurrency($pdo, $dateFrom = null, $dateTo = null) {
     ");
     $stmt->execute($params);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// ─── Stripe payment provider ──────────────────────────────────────────────────
+
+/**
+ * Create a Stripe Checkout Session for a booking.
+ *
+ * Requires the Stripe PHP SDK: composer require stripe/stripe-php
+ * Configure STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY in the environment.
+ */
+function createStripeCheckoutSession($pdo) {
+    $currentUser = Auth::getCurrentUser();
+    if (!$currentUser) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Authentication required']);
+        return;
+    }
+
+    $stripeSecretKey = getenv('STRIPE_SECRET_KEY') ?: null;
+    if (!$stripeSecretKey) {
+        http_response_code(503);
+        echo json_encode(['error' => 'Stripe is not configured. Set STRIPE_SECRET_KEY.']);
+        return;
+    }
+
+    $data = json_decode(file_get_contents('php://input'), true);
+    if (!$data || !isset($data['booking_id'])) {
+        http_response_code(400);
+        echo json_encode(['error' => 'booking_id required']);
+        return;
+    }
+
+    $stmt = $pdo->prepare("SELECT id, total_amount, currency FROM bookings WHERE id = ? AND customer_id = ?");
+    $stmt->execute([$data['booking_id'], $currentUser['id']]);
+    $booking = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$booking) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Booking not found or access denied']);
+        return;
+    }
+
+    // Prevent duplicate checkout sessions for the same booking
+    $dupStmt = $pdo->prepare("SELECT id FROM payments WHERE booking_id = ? AND status IN ('pending', 'completed')");
+    $dupStmt->execute([$data['booking_id']]);
+    if ($dupStmt->fetch()) {
+        http_response_code(409);
+        echo json_encode(['error' => 'A payment already exists for this booking']);
+        return;
+    }
+
+    $stripeAvailable = file_exists(__DIR__ . '/../vendor/stripe/stripe-php/init.php');
+    if (!$stripeAvailable) {
+        http_response_code(503);
+        echo json_encode(['error' => 'Stripe PHP SDK not installed. Run: composer require stripe/stripe-php']);
+        return;
+    }
+
+    require_once __DIR__ . '/../vendor/stripe/stripe-php/init.php';
+    \Stripe\Stripe::setApiKey($stripeSecretKey);
+
+    // Stripe amounts are in the smallest currency unit (cents)
+    $amountCents = (int) round((float) $booking['total_amount'] * 100);
+    $appUrl = rtrim(getenv('APP_URL') ?: 'http://localhost', '/');
+
+    $session = \Stripe\Checkout\Session::create([
+        'payment_method_types' => ['card'],
+        'line_items' => [[
+            'price_data' => [
+                'currency'     => strtolower($booking['currency'] ?? 'usd'),
+                'unit_amount'  => $amountCents,
+                'product_data' => ['name' => 'Flight Booking #' . $data['booking_id']],
+            ],
+            'quantity' => 1,
+        ]],
+        'mode'        => 'payment',
+        'success_url' => $appUrl . '/booking/confirmed?session_id={CHECKOUT_SESSION_ID}',
+        'cancel_url'  => $appUrl . '/booking/cancelled',
+        'metadata'    => [
+            'booking_id' => $data['booking_id'],
+            'user_id'    => $currentUser['id'],
+        ],
+    ]);
+
+    // Record the pending payment immediately
+    $stmt = $pdo->prepare("
+        INSERT INTO payments (booking_id, customer_id, amount, currency, status, payment_method, stripe_session_id, description)
+        VALUES (?, ?, ?, ?, 'pending', 'stripe', ?, ?)
+    ");
+    $stmt->execute([
+        $data['booking_id'],
+        $currentUser['id'],
+        $booking['total_amount'],
+        $booking['currency'],
+        $session->id,
+        'Flight booking payment via Stripe',
+    ]);
+    $paymentId = $pdo->lastInsertId();
+
+    require_once __DIR__ . '/../src/Logger.php';
+    Logger::info('Stripe checkout session created', ['payment_id' => $paymentId, 'session_id' => $session->id]);
+
+    echo json_encode([
+        'checkout_url'  => $session->url,
+        'session_id'    => $session->id,
+        'payment_id'    => $paymentId,
+        'publishable_key' => getenv('STRIPE_PUBLISHABLE_KEY') ?: null,
+    ]);
+}
+
+/**
+ * Handle incoming Stripe webhook events.
+ *
+ * Routes: POST /api/payments.php?action=stripe_webhook
+ * Set STRIPE_WEBHOOK_SECRET to the signing secret from the Stripe dashboard.
+ */
+function handleStripeWebhook($pdo) {
+    $rawBody  = file_get_contents('php://input');
+    $sigHeader = $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? '';
+
+    $webhookSecret = getenv('STRIPE_WEBHOOK_SECRET') ?: null;
+    if (!$webhookSecret) {
+        http_response_code(400);
+        echo json_encode(['error' => 'STRIPE_WEBHOOK_SECRET is not configured']);
+        return;
+    }
+
+    $stripeAvailable = file_exists(__DIR__ . '/../vendor/stripe/stripe-php/init.php');
+    if (!$stripeAvailable) {
+        http_response_code(503);
+        echo json_encode(['error' => 'Stripe PHP SDK not installed']);
+        return;
+    }
+
+    require_once __DIR__ . '/../vendor/stripe/stripe-php/init.php';
+
+    try {
+        $event = \Stripe\Webhook::constructEvent($rawBody, $sigHeader, $webhookSecret);
+    } catch (\Stripe\Exception\SignatureVerificationException $e) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid Stripe webhook signature']);
+        return;
+    }
+
+    require_once __DIR__ . '/../src/Logger.php';
+
+    switch ($event->type) {
+        case 'checkout.session.completed':
+            $session = $event->data->object;
+            $bookingId = $session->metadata->booking_id ?? null;
+            if ($bookingId) {
+                $stmt = $pdo->prepare("
+                    UPDATE payments
+                    SET status = 'completed', stripe_session_id = ?, stripe_payment_intent_id = ?, processed_at = CURRENT_TIMESTAMP
+                    WHERE booking_id = ? AND payment_method = 'stripe' AND status = 'pending'
+                ");
+                $stmt->execute([$session->id, $session->payment_intent, $bookingId]);
+                $stmt2 = $pdo->prepare("UPDATE bookings SET payment_status = 'paid' WHERE id = ?");
+                $stmt2->execute([$bookingId]);
+                Logger::info('Stripe checkout.session.completed', ['booking_id' => $bookingId]);
+            }
+            break;
+
+        case 'payment_intent.payment_failed':
+            $intent = $event->data->object;
+            $stmt = $pdo->prepare("
+                UPDATE payments SET status = 'failed', updated_at = CURRENT_TIMESTAMP
+                WHERE stripe_payment_intent_id = ?
+            ");
+            $stmt->execute([$intent->id]);
+            Logger::info('Stripe payment_intent.payment_failed', ['intent_id' => $intent->id]);
+            break;
+
+        case 'charge.refunded':
+            $charge = $event->data->object;
+            $refundAmount = ($charge->amount_refunded ?? 0) / 100;
+            $stmt = $pdo->prepare("
+                UPDATE payments SET status = 'refunded', refunded_amount = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE stripe_payment_intent_id = ?
+            ");
+            $stmt->execute([$refundAmount, $charge->payment_intent]);
+            Logger::info('Stripe charge.refunded', ['payment_intent' => $charge->payment_intent]);
+            break;
+
+        default:
+            Logger::info('Stripe webhook event received (unhandled)', ['type' => $event->type]);
+            break;
+    }
+
+    echo json_encode(['status' => 'success']);
 }
 ?>

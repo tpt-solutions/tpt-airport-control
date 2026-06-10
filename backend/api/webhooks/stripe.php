@@ -1,4 +1,8 @@
 <?php
+// Webhooks arrive from Stripe's servers, not a browser — CSRF does not apply.
+define('CSRF_EXEMPT', true);
+require_once __DIR__ . '/../cors.php';
+
 /**
  * Stripe Billing Webhook Endpoint
  *
@@ -40,13 +44,13 @@ try {
     
 } catch (Exception $e) {
     $logger->error('Stripe webhook processing failed', [
-        'error' => $e->getMessage()
+        'error' => 'An internal error occurred'
     ]);
-    
+
     http_response_code(400);
     echo json_encode([
         'status' => 'error',
-        'message' => $e->getMessage()
+        'message' => 'Webhook processing failed'
     ]);
 }
 

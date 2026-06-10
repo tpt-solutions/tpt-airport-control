@@ -1,3 +1,4 @@
+import { AuthManager } from '../../auth.js';
 import { DashboardApiService } from '../services/DashboardApiService.js';
 import type { User } from '../types.js';
 
@@ -263,31 +264,31 @@ export class VirtualAssistantView {
       const [assistantResponse, preferencesResponse, historyResponse, commandsResponse, recommendationsResponse] = await Promise.all([
         fetch('/backend/api/virtual-assistant', {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
             'Content-Type': 'application/json'
           }
         }),
         fetch('/backend/api/virtual-assistant/preferences', {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
             'Content-Type': 'application/json'
           }
         }),
         fetch('/backend/api/virtual-assistant/history?limit=20', {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
             'Content-Type': 'application/json'
           }
         }),
         fetch('/backend/api/virtual-assistant/commands', {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
             'Content-Type': 'application/json'
           }
         }),
         fetch('/backend/api/virtual-assistant/recommendations', {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
             'Content-Type': 'application/json'
           }
         })
@@ -380,8 +381,8 @@ export class VirtualAssistantView {
             </span>
           </div>
           <p class="text-sm text-gray-700 mb-2">${rec.description}</p>
-          <button class="text-sm text-blue-600 hover:text-blue-800 underline" onclick="handleRecommendation('${rec.action}')">
-            ${rec.action.replace('_', ' ')}
+          <button class="recommendation-action-btn text-sm text-blue-600 hover:text-blue-800 underline" data-action="${rec.action}">
+            ${rec.action.replaceAll('_', ' ')}
           </button>
         </div>
       </div>
@@ -448,7 +449,7 @@ export class VirtualAssistantView {
       const response = await fetch('/backend/api/virtual-assistant/voice-command', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ command })
@@ -472,7 +473,7 @@ export class VirtualAssistantView {
       const response = await fetch('/backend/api/virtual-assistant/text-query', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ query })
@@ -495,22 +496,33 @@ export class VirtualAssistantView {
 
   private displayResponse(response: string, type: string = 'info'): void {
     const responseArea = document.getElementById('response-area');
-    if (responseArea) {
-      const typeClasses = {
-        info: 'text-blue-800',
-        success: 'text-green-800',
-        warning: 'text-yellow-800',
-        error: 'text-red-800'
-      };
+    if (!responseArea) return;
 
-      responseArea.innerHTML = `
-        <div class="p-4 rounded-lg ${typeClasses[type as keyof typeof typeClasses] || 'text-gray-800'}">
-          <p class="font-medium mb-2">Assistant Response:</p>
-          <p>${response}</p>
-          <p class="text-xs mt-2 opacity-75">${new Date().toLocaleTimeString()}</p>
-        </div>
-      `;
-    }
+    const typeClass: Record<string, string> = {
+      info: 'text-blue-800',
+      success: 'text-green-800',
+      warning: 'text-yellow-800',
+      error: 'text-red-800',
+    };
+
+    const wrapper = document.createElement('div');
+    wrapper.className = `p-4 rounded-lg ${typeClass[type] ?? 'text-gray-800'}`;
+
+    const label = document.createElement('p');
+    label.className = 'font-medium mb-2';
+    label.textContent = 'Assistant Response:';
+
+    const text = document.createElement('p');
+    text.textContent = response;
+
+    const time = document.createElement('p');
+    time.className = 'text-xs mt-2 opacity-75';
+    time.textContent = new Date().toLocaleTimeString();
+
+    wrapper.appendChild(label);
+    wrapper.appendChild(text);
+    wrapper.appendChild(time);
+    responseArea.replaceChildren(wrapper);
   }
 
   private speakResponse(text: string): void {
@@ -595,6 +607,16 @@ export class VirtualAssistantView {
       });
     }
 
+    // Recommendation action buttons
+    document.querySelectorAll('.recommendation-action-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const action = (e.currentTarget as HTMLElement).dataset.action;
+        if (action) {
+          this.handleRecommendation(action);
+        }
+      });
+    });
+
     // Voice settings
     if (voiceEnabledCheckbox) {
       voiceEnabledCheckbox.addEventListener('change', (e) => {
@@ -631,6 +653,16 @@ export class VirtualAssistantView {
     }
   }
 
+  private handleRecommendation(action: string): void {
+    const textInput = document.getElementById('text-input') as HTMLInputElement | null;
+    const query = action.replaceAll('_', ' ');
+    if (textInput) {
+      textInput.value = query;
+      textInput.focus();
+    }
+    this.processTextQuery(query);
+  }
+
   private async updateVoiceSetting(setting: string, value: any): Promise<void> {
     try {
       const data: any = {};
@@ -641,7 +673,7 @@ export class VirtualAssistantView {
         await fetch('/backend/api/virtual-assistant/preferences', {
           method: 'PUT',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify(data)
@@ -651,7 +683,7 @@ export class VirtualAssistantView {
         await fetch(`/backend/api/virtual-assistant/${this.assistant?.id}`, {
           method: 'PUT',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${AuthManager.getInstance().getToken() ?? ''}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify(data)

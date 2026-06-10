@@ -37,8 +37,8 @@ class UserController {
             }
 
             // Pagination
-            $pagination['page'] = (int)($_GET['page'] ?? 1);
-            $pagination['limit'] = (int)($_GET['limit'] ?? 50);
+            $pagination['page'] = max(1, (int)($_GET['page'] ?? 1));
+            $pagination['limit'] = min(100, max(1, (int)($_GET['limit'] ?? 50)));
             $pagination['offset'] = ($pagination['page'] - 1) * $pagination['limit'];
 
             $result = $this->userService->getUsers($filters, $pagination);
@@ -46,7 +46,7 @@ class UserController {
             return $result;
         } catch (Exception $e) {
             http_response_code(500);
-            return ['error' => 'Failed to retrieve users', 'message' => $e->getMessage()];
+            return ['error' => 'Failed to retrieve users', 'message' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -74,7 +74,8 @@ class UserController {
             } else {
                 http_response_code(500);
             }
-            return ['error' => $e->getMessage()];
+            error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -102,7 +103,8 @@ class UserController {
             } else {
                 http_response_code(500);
             }
-            return ['error' => $e->getMessage()];
+            error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -134,7 +136,8 @@ class UserController {
             } else {
                 http_response_code(500);
             }
-            return ['error' => $e->getMessage()];
+            error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -178,7 +181,8 @@ class UserController {
             } else {
                 http_response_code(500);
             }
-            return ['error' => $e->getMessage()];
+            error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -194,7 +198,7 @@ class UserController {
             return $this->updateUser($currentUser['id']);
         } catch (Exception $e) {
             http_response_code(500);
-            return ['error' => 'Failed to update profile', 'message' => $e->getMessage()];
+            return ['error' => 'Failed to update profile', 'message' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -237,7 +241,8 @@ class UserController {
             } else {
                 http_response_code(500);
             }
-            return ['error' => $e->getMessage()];
+            error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -260,7 +265,8 @@ class UserController {
             } else {
                 http_response_code(500);
             }
-            return ['error' => $e->getMessage()];
+            error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -283,7 +289,8 @@ class UserController {
             } else {
                 http_response_code(500);
             }
-            return ['error' => $e->getMessage()];
+            error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -304,7 +311,8 @@ class UserController {
             } else {
                 http_response_code(500);
             }
-            return ['error' => $e->getMessage()];
+            error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -329,7 +337,7 @@ class UserController {
             return $result;
         } catch (Exception $e) {
             http_response_code(500);
-            return ['error' => 'Search failed', 'message' => $e->getMessage()];
+            return ['error' => 'Search failed', 'message' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -346,7 +354,7 @@ class UserController {
             return $result;
         } catch (Exception $e) {
             http_response_code(500);
-            return ['error' => 'Failed to retrieve users by role', 'message' => $e->getMessage()];
+            return ['error' => 'Failed to retrieve users by role', 'message' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -363,7 +371,7 @@ class UserController {
             return $result;
         } catch (Exception $e) {
             http_response_code(500);
-            return ['error' => 'Failed to retrieve statistics', 'message' => $e->getMessage()];
+            return ['error' => 'Failed to retrieve statistics', 'message' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -380,7 +388,7 @@ class UserController {
             return $result;
         } catch (Exception $e) {
             http_response_code(500);
-            return ['error' => 'Failed to retrieve role distribution', 'message' => $e->getMessage()];
+            return ['error' => 'Failed to retrieve role distribution', 'message' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -403,7 +411,8 @@ class UserController {
             } else {
                 http_response_code(500);
             }
-            return ['error' => $e->getMessage()];
+            error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
         }
     }
 }

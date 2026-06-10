@@ -45,8 +45,8 @@ class BookingController {
             }
 
             // Pagination
-            $pagination['page'] = (int)($_GET['page'] ?? 1);
-            $pagination['limit'] = (int)($_GET['limit'] ?? 50);
+            $pagination['page'] = max(1, (int)($_GET['page'] ?? 1));
+            $pagination['limit'] = min(100, max(1, (int)($_GET['limit'] ?? 50)));
             $pagination['offset'] = ($pagination['page'] - 1) * $pagination['limit'];
 
             $result = $this->bookingService->getBookings($filters, $pagination);
@@ -54,7 +54,7 @@ class BookingController {
             return $result;
         } catch (Exception $e) {
             http_response_code(500);
-            return ['error' => 'Failed to retrieve bookings', 'message' => $e->getMessage()];
+            return ['error' => 'Failed to retrieve bookings', 'message' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -90,7 +90,8 @@ class BookingController {
             } else {
                 http_response_code(500);
             }
-            return ['error' => $e->getMessage()];
+            error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -126,7 +127,8 @@ class BookingController {
             } else {
                 http_response_code(500);
             }
-            return ['error' => $e->getMessage()];
+            error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -161,7 +163,7 @@ class BookingController {
             return $result;
         } catch (Exception $e) {
             http_response_code(500);
-            return ['error' => 'Failed to retrieve passenger bookings', 'message' => $e->getMessage()];
+            return ['error' => 'Failed to retrieve passenger bookings', 'message' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -193,7 +195,8 @@ class BookingController {
             } else {
                 http_response_code(500);
             }
-            return ['error' => $e->getMessage()];
+            error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -245,7 +248,8 @@ class BookingController {
             } else {
                 http_response_code(500);
             }
-            return ['error' => $e->getMessage()];
+            error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -285,7 +289,8 @@ class BookingController {
             } else {
                 http_response_code(500);
             }
-            return ['error' => $e->getMessage()];
+            error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -325,7 +330,8 @@ class BookingController {
             } else {
                 http_response_code(500);
             }
-            return ['error' => $e->getMessage()];
+            error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -356,7 +362,7 @@ class BookingController {
             return $result;
         } catch (Exception $e) {
             http_response_code(500);
-            return ['error' => 'Search failed', 'message' => $e->getMessage()];
+            return ['error' => 'Search failed', 'message' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -373,7 +379,7 @@ class BookingController {
             return $result;
         } catch (Exception $e) {
             http_response_code(500);
-            return ['error' => 'Failed to retrieve statistics', 'message' => $e->getMessage()];
+            return ['error' => 'Failed to retrieve statistics', 'message' => 'An error occurred. Please try again.'];
         }
     }
 
@@ -393,7 +399,7 @@ class BookingController {
             return $result;
         } catch (Exception $e) {
             http_response_code(500);
-            return ['error' => 'Failed to generate revenue report', 'message' => $e->getMessage()];
+            return ['error' => 'Failed to generate revenue report', 'message' => 'An error occurred. Please try again.'];
         }
     }
 }

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/cors.php';
 /**
  * Demo Mode API
  *
@@ -10,15 +11,6 @@ require_once __DIR__ . '/../src/Config.php';
 require_once __DIR__ . '/../src/Logger.php';
 require_once __DIR__ . '/../src/RBAC.php';
 require_once __DIR__ . '/../services/AchievementService.php';
-
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
-}
 
 class DemoAPI
 {

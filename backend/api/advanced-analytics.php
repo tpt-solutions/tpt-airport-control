@@ -1,5 +1,6 @@
 <?php
 
+require_once __DIR__ . '/cors.php';
 /**
  * Advanced Analytics API
  *
@@ -10,11 +11,6 @@
 require_once '../src/Config.php';
 require_once '../src/ApiResponse.php';
 require_once '../services/AdvancedAnalyticsService.php';
-
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
 
 // Handle preflight OPTIONS request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -555,7 +551,7 @@ function trainAllModels($analyticsService) {
                 $results[] = [
                     'model_id' => $model['model_id'],
                     'status' => 'error',
-                    'error' => $e->getMessage()
+                    'error' => 'An internal error occurred'
                 ];
             }
         }

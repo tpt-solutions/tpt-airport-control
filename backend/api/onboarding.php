@@ -123,7 +123,7 @@ class OnboardingAPI
             ]);
         } catch (Exception $e) {
             $this->logger->error("Failed to complete onboarding step", ['error' => $e->getMessage()]);
-            $this->sendError($e->getMessage(), 400);
+            error_log('API error: ' . $e->getMessage()); $this->sendError('An internal error occurred', 400);
         }
     }
 
@@ -138,7 +138,7 @@ class OnboardingAPI
             ]);
         } catch (Exception $e) {
             $this->logger->error("Failed to initialize onboarding", ['error' => $e->getMessage()]);
-            $this->sendError($e->getMessage(), 400);
+            error_log('API error: ' . $e->getMessage()); $this->sendError('An internal error occurred', 400);
         }
     }
 

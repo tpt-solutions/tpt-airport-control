@@ -409,7 +409,7 @@ class FileCacheBackend implements CacheBackendInterface
             return null;
         }
 
-        $data = unserialize(file_get_contents($file));
+        $data = json_decode(file_get_contents($file), true);
         if (!$data || !isset($data['value'], $data['expires'])) {
             return null;
         }
@@ -430,7 +430,7 @@ class FileCacheBackend implements CacheBackendInterface
             'expires' => $ttl > 0 ? time() + $ttl : 0
         ];
 
-        return file_put_contents($file, serialize($data)) !== false;
+        return file_put_contents($file, json_encode($data)) !== false;
     }
 
     public function delete($key)
@@ -544,16 +544,16 @@ class RedisCacheBackend implements CacheBackendInterface
     public function get($key)
     {
         $value = $this->redis->get($key);
-        return $value === false ? null : unserialize($value);
+        return $value === false ? null : json_decode($value, true);
     }
 
     public function set($key, $value, $ttl)
     {
-        $serialized = serialize($value);
+        $encoded = json_encode($value);
         if ($ttl > 0) {
-            return $this->redis->setex($key, $ttl, $serialized);
+            return $this->redis->setex($key, $ttl, $encoded);
         } else {
-            return $this->redis->set($key, $serialized);
+            return $this->redis->set($key, $encoded);
         }
     }
 
@@ -578,7 +578,7 @@ class RedisCacheBackend implements CacheBackendInterface
         $result = [];
         foreach ($keys as $i => $key) {
             if ($values[$i] !== false) {
-                $result[$key] = unserialize($values[$i]);
+                $result[$key] = json_decode($values[$i], true);
             }
         }
         return $result;
@@ -586,20 +586,20 @@ class RedisCacheBackend implements CacheBackendInterface
 
     public function setMultiple($values, $ttl)
     {
-        $serialized = [];
+        $encoded = [];
         foreach ($values as $key => $value) {
-            $serialized[$key] = serialize($value);
+            $encoded[$key] = json_encode($value);
         }
 
         if ($ttl > 0) {
             $this->redis->multi();
-            foreach ($serialized as $key => $value) {
+            foreach ($encoded as $key => $value) {
                 $this->redis->setex($key, $ttl, $value);
             }
             $result = $this->redis->exec();
             return !in_array(false, $result);
         } else {
-            return $this->redis->mset($serialized);
+            return $this->redis->mset($encoded);
         }
     }
 
@@ -655,13 +655,12 @@ class MemcachedCacheBackend implements CacheBackendInterface
     {
         $value = $this->memcached->get($key);
         return $this->memcached->getResultCode() === Memcached::RES_SUCCESS
-            ? unserialize($value) : null;
+            ? json_decode($value, true) : null;
     }
 
     public function set($key, $value, $ttl)
     {
-        $serialized = serialize($value);
-        return $this->memcached->set($key, $serialized, $ttl);
+        return $this->memcached->set($key, json_encode($value), $ttl);
     }
 
     public function delete($key)
@@ -686,7 +685,7 @@ class MemcachedCacheBackend implements CacheBackendInterface
         $result = [];
         if ($values) {
             foreach ($values as $key => $value) {
-                $result[$key] = unserialize($value);
+                $result[$key] = json_decode($value, true);
             }
         }
         return $result;
@@ -694,11 +693,11 @@ class MemcachedCacheBackend implements CacheBackendInterface
 
     public function setMultiple($values, $ttl)
     {
-        $serialized = [];
+        $encoded = [];
         foreach ($values as $key => $value) {
-            $serialized[$key] = serialize($value);
+            $encoded[$key] = json_encode($value);
         }
-        return $this->memcached->setMulti($serialized, $ttl);
+        return $this->memcached->setMulti($encoded, $ttl);
     }
 
     public function deleteMultiple($keys)

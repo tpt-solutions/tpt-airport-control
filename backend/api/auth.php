@@ -1,15 +1,6 @@
 <?php
 declare(strict_types=1);
-
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-header('Content-Type: application/json');
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
+require_once __DIR__ . '/cors.php';
 
 require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../src/Auth.php';
@@ -17,6 +8,23 @@ require_once __DIR__ . '/../src/Auth.php';
 use TPT\FlightControl\Logger;
 
 $action = $_GET['action'] ?? '';
+
+/**
+ * Set (or clear) the httpOnly JWT cookie.
+ * Passing an empty string expires the cookie immediately.
+ */
+function setJwtCookie(string $token): void {
+    $secure   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+             || (string)($_SERVER['SERVER_PORT'] ?? '80') === '443';
+    $lifetime = (int)(getenv('JWT_LIFETIME') ?: 3600);
+    setcookie('jwt_token', $token, [
+        'expires'  => $token === '' ? 1 : time() + $lifetime,
+        'path'     => '/',
+        'secure'   => $secure,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+}
 
 
 try {
@@ -59,7 +67,17 @@ try {
         throw new Exception('No working database connection available. Please install either PDO SQLite or PDO PostgreSQL driver.');
     }
     
-    Logger::info('Database connected', ['driver' => $db->getAttribute(PDO::ATTR_DRIVER_NAME)]);
+    $driver = $db->getAttribute(PDO::ATTR_DRIVER_NAME);
+    Logger::info('Database connected', ['driver' => $driver]);
+
+    // In demo mode (SQLite with no JWT_SECRET set) generate a stable per-installation
+    // secret so demos work out-of-the-box. This secret changes when the SQLite file
+    // changes on disk, so it is NOT the same known string for every deployment.
+    if ($driver === 'sqlite' && !getenv('JWT_SECRET')) {
+        $demoSecret = hash('sha256', __DIR__ . '|' . filemtime($sqlitePath));
+        putenv('JWT_SECRET=' . $demoSecret);
+    }
+
     Auth::init($db);
 
     
@@ -78,9 +96,19 @@ try {
                 exit;
             }
             
-            // Demo mode login - always allow admin credentials
-            if ($data['username'] === 'admin' && $data['password'] === 'FlightControl@2026!') {
-                Logger::info('Demo mode login', ['username' => $data['username']]);
+            // Default admin credential — configurable via DEFAULT_ADMIN_PASSWORD env var.
+            // If the default value is still in use, we set password_change_required so the
+            // UI can prompt the user to change it before continuing.
+            $defaultAdminPassword = getenv('DEFAULT_ADMIN_PASSWORD') ?: 'FlightControl@2026!';
+            $usingDefaultPassword = false;
+
+            if ($data['username'] === 'admin' && $data['password'] === $defaultAdminPassword) {
+                $usingDefaultPassword = ($data['password'] === 'FlightControl@2026!' && !getenv('DEFAULT_ADMIN_PASSWORD'));
+                if ($usingDefaultPassword) {
+                    error_log('SECURITY WARNING: Admin logged in with default password. Change DEFAULT_ADMIN_PASSWORD before going live.');
+                    Logger::warning('Admin login with default password — password_change_required', ['username' => $data['username']]);
+                }
+                Logger::info('Default admin login', ['username' => $data['username']]);
                 $user = [
                     'id' => 1,
                     'username' => 'admin',
@@ -99,6 +127,7 @@ try {
                 $result = [
                     'success' => true,
                     'token' => $token,
+                    'password_change_required' => $usingDefaultPassword,
                     'user' => [
                         'id' => $user['id'],
                         'username' => $user['username'],
@@ -118,6 +147,7 @@ try {
             
             Logger::debug('Login response', ['success' => $result['success']]);
             if ($result['success']) {
+                setJwtCookie($token);
                 echo json_encode($result);
             } else {
                 http_response_code(401);
@@ -127,35 +157,66 @@ try {
 
             
         case 'validate':
-            $headers = getallheaders();
-            $authHeader = $headers['Authorization'] ?? '';
-            
-            if (!str_starts_with($authHeader, 'Bearer ')) {
+            $validateToken = null;
+            $valHeaders = getallheaders();
+            $valAuth = $valHeaders['Authorization'] ?? '';
+            if (str_starts_with($valAuth, 'Bearer ')) {
+                $validateToken = substr($valAuth, 7);
+            } elseif (!empty($_COOKIE['jwt_token'])) {
+                $validateToken = $_COOKIE['jwt_token'];
+            }
+
+            if (!$validateToken) {
                 http_response_code(401);
                 echo json_encode(['valid' => false]);
                 exit;
             }
-            
-            $token = substr($authHeader, 7);
-            $valid = Auth::validateToken($token);
-            
-            echo json_encode(['valid' => $valid !== false]);
+
+            $payload = Auth::validateToken($validateToken);
+            if ($payload && is_array($payload)) {
+                echo json_encode([
+                    'valid'  => true,
+                    'token'  => $validateToken,
+                    'user'   => [
+                        'id'         => $payload['user_id'] ?? 0,
+                        'username'   => $payload['username'] ?? '',
+                        'email'      => '',
+                        'first_name' => $payload['username'] ?? '',
+                        'last_name'  => '',
+                        'role_name'  => $payload['role'] ?? '',
+                    ],
+                ]);
+            } else {
+                http_response_code(401);
+                echo json_encode(['valid' => false]);
+            }
             break;
-            
+
+        case 'logout':
+            setJwtCookie('');
+            echo json_encode(['success' => true]);
+            break;
+
         case 'refresh':
-            $headers = getallheaders();
-            $authHeader = $headers['Authorization'] ?? '';
-            
-            if (!str_starts_with($authHeader, 'Bearer ')) {
+            $refreshToken = null;
+            $refHeaders = getallheaders();
+            $refAuth = $refHeaders['Authorization'] ?? '';
+            if (str_starts_with($refAuth, 'Bearer ')) {
+                $refreshToken = substr($refAuth, 7);
+            } elseif (!empty($_COOKIE['jwt_token'])) {
+                $refreshToken = $_COOKIE['jwt_token'];
+            }
+
+            if (!$refreshToken) {
                 http_response_code(401);
                 echo json_encode(['success' => false]);
                 exit;
             }
-            
-            $token = substr($authHeader, 7);
-            $result = Auth::refreshAccessToken($token);
-            
+
+            $result = Auth::refreshAccessToken($refreshToken);
+
             if ($result) {
+                setJwtCookie($result['access_token']);
                 echo json_encode([
                     'success' => true,
                     'token' => $result['access_token']
@@ -183,10 +244,10 @@ try {
     }
     
 } catch (Exception $e) {
-    Logger::error('Auth API exception', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+    Logger::error('Auth API exception', ['message' => \$e->getMessage(), 'trace' => $e->getTraceAsString()]);
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Server error: ' . $e->getMessage()
+        'message' => 'An internal error occurred. Please try again.'
     ]);
 }

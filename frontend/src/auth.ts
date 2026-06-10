@@ -15,12 +15,14 @@ interface AuthResponse {
   token?: string;
   user?: User;
   message?: string;
+  password_change_required?: boolean;
 }
 
 class AuthManager {
   private static instance: AuthManager;
   private token: string | null = null;
   private user: User | null = null;
+  private passwordChangeRequired = false;
   private readonly API_BASE = '/api';
 
   private constructor() {
@@ -35,35 +37,141 @@ class AuthManager {
     return AuthManager.instance;
   }
 
-  private loadStoredAuth() {
-    const storedToken = localStorage.getItem('auth_token');
-    const storedUser = localStorage.getItem('auth_user');
+  /** Decode the `exp` claim from a JWT without verifying the signature. */
+  private getTokenExpiry(token: string): number | null {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return typeof payload.exp === 'number' ? payload.exp : null;
+    } catch {
+      return null;
+    }
+  }
 
-    if (storedToken && storedUser) {
-      this.token = storedToken;
+  /** Returns true when the token has already expired. */
+  isTokenExpired(token: string): boolean {
+    const exp = this.getTokenExpiry(token);
+    return exp !== null && Date.now() / 1000 > exp;
+  }
+
+  /**
+   * Schedule a proactive token refresh 60 seconds before expiry.
+   * Clears any previously scheduled refresh first.
+   */
+  private refreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private scheduleTokenRefresh(token: string): void {
+    if (this.refreshTimer) clearTimeout(this.refreshTimer);
+    const exp = this.getTokenExpiry(token);
+    if (!exp) return;
+    const msUntilRefresh = (exp * 1000) - Date.now() - 60_000;
+    if (msUntilRefresh <= 0) return;
+    this.refreshTimer = setTimeout(() => this.refreshTokenIfNeeded(), msUntilRefresh);
+  }
+
+  private async refreshTokenIfNeeded(): Promise<void> {
+    try {
+      const fetchOpts: RequestInit = { credentials: 'include' };
+      if (this.token) {
+        fetchOpts.headers = { Authorization: `Bearer ${this.token}` };
+      }
+      const response = await fetch(`${this.API_BASE}/auth.php?action=refresh`, fetchOpts);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.token) {
+          this.token = data.token;
+          this.scheduleTokenRefresh(data.token);
+        }
+      } else {
+        this.logout();
+      }
+    } catch {
+      // Network error during refresh — leave current token, let the next API call handle it
+    }
+  }
+
+  private loadStoredAuth(): void {
+    // Restore user data from localStorage (non-sensitive).
+    // The JWT lives in an httpOnly cookie — call initialize() to restore the in-memory token.
+    const storedUser = localStorage.getItem('auth_user');
+    if (storedUser) {
       try {
         this.user = JSON.parse(storedUser);
-      } catch (error) {
-        console.error('[AuthManager] Failed to parse stored user data:', error);
-        this.logout();
+      } catch {
+        localStorage.removeItem('auth_user');
       }
     }
   }
 
+  /**
+   * Call once on app startup (before checking isAuthenticated).
+   * Validates the httpOnly cookie and restores the in-memory token so
+   * proactive refresh and Authorization headers work for the session.
+   */
+  async initialize(): Promise<void> {
+    if (this.token) return; // already authenticated (e.g., just logged in)
+    if (!this.user) return; // no saved session — nothing to restore
 
-  private saveAuth(token: string, user: User) {
-    this.token = token;
-    this.user = user;
-    localStorage.setItem('auth_token', token);
-    localStorage.setItem('auth_user', JSON.stringify(user));
+    try {
+      const response = await fetch(`${this.API_BASE}/auth.php?action=validate`, {
+        credentials: 'include',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.valid && data.token) {
+          this.token = data.token;
+          // Refresh stored user data if the server returned updated info
+          if (data.user) {
+            this.user = data.user;
+            localStorage.setItem('auth_user', JSON.stringify(data.user));
+          }
+          this.scheduleTokenRefresh(data.token);
+          return;
+        }
+      }
+    } catch {
+      // Network error — leave state as-is; first API call will handle 401
+      return;
+    }
+    // Cookie expired or invalid
+    this.clearAuth();
   }
 
 
-  private clearAuth() {
+  private saveAuth(token: string, user: User, passwordChangeRequired = false): void {
+    this.token = token;
+    this.user = user;
+    this.passwordChangeRequired = passwordChangeRequired;
+    this.scheduleTokenRefresh(token);
+    // Store only non-sensitive user data. The JWT lives in an httpOnly cookie set by the server.
+    localStorage.setItem('auth_user', JSON.stringify(user));
+    if (passwordChangeRequired) {
+      localStorage.setItem('password_change_required', '1');
+    } else {
+      localStorage.removeItem('password_change_required');
+    }
+  }
+
+  isPasswordChangeRequired(): boolean {
+    return this.passwordChangeRequired || localStorage.getItem('password_change_required') === '1';
+  }
+
+  clearPasswordChangeRequired(): void {
+    this.passwordChangeRequired = false;
+    localStorage.removeItem('password_change_required');
+  }
+
+  clearAuth(): void {
     this.token = null;
     this.user = null;
-    localStorage.removeItem('auth_token');
+    this.passwordChangeRequired = false;
+    if (this.refreshTimer) { clearTimeout(this.refreshTimer); this.refreshTimer = null; }
     localStorage.removeItem('auth_user');
+    localStorage.removeItem('password_change_required');
+    // Clear the httpOnly cookie server-side (fire-and-forget)
+    fetch(`${this.API_BASE}/auth.php?action=logout`, {
+      method: 'POST',
+      credentials: 'include',
+    }).catch(() => {});
   }
 
   async login(username: string, password: string): Promise<AuthResponse> {
@@ -79,8 +187,13 @@ class AuthManager {
       const data = await response.json();
 
       if (data.success && data.token && data.user) {
-        this.saveAuth(data.token, data.user);
-        return { success: true, token: data.token, user: data.user };
+        this.saveAuth(data.token, data.user, !!data.password_change_required);
+        return {
+          success: true,
+          token: data.token,
+          user: data.user,
+          password_change_required: !!data.password_change_required,
+        };
       } else {
         return { success: false, message: data.message || 'Login failed' };
       }
@@ -214,6 +327,7 @@ class AuthManager {
 
     const response = await fetch(url, {
       ...options,
+      credentials: 'include', // send httpOnly JWT cookie
       headers,
     });
 
@@ -263,12 +377,12 @@ class AuthManager {
 
   // Refresh token if needed
   async refreshToken(): Promise<boolean> {
-    if (!this.token) return false;
-
     try {
-      const response = await fetch(`${this.API_BASE}/auth.php?action=refresh`, {
-        headers: { 'Authorization': `Bearer ${this.token}` },
-      });
+      const fetchOpts: RequestInit = { credentials: 'include' };
+      if (this.token) {
+        fetchOpts.headers = { 'Authorization': `Bearer ${this.token}` };
+      }
+      const response = await fetch(`${this.API_BASE}/auth.php?action=refresh`, fetchOpts);
 
       if (!response.ok) return false;
 
@@ -276,7 +390,7 @@ class AuthManager {
 
       if (data.success && data.token) {
         this.token = data.token;
-        localStorage.setItem('auth_token', data.token);
+        this.scheduleTokenRefresh(data.token);
         return true;
       }
     } catch (error) {
@@ -564,11 +678,16 @@ class AuthUI {
       const result = await this.auth.login(username, password);
 
       if (result.success) {
-        this.showMessage('Login successful! Redirecting...', 'success');
-        // Redirect or update UI
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
+        if (result.password_change_required) {
+          this.showMessage(
+            'Login successful. You are using the default admin password — please change it immediately.',
+            'info'
+          );
+          setTimeout(() => window.location.reload(), 2000);
+        } else {
+          this.showMessage('Login successful! Redirecting...', 'success');
+          setTimeout(() => window.location.reload(), 1000);
+        }
       } else {
         this.showMessage(result.message || 'Login failed', 'error');
       }

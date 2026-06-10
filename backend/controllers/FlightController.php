@@ -42,8 +42,8 @@ class FlightController {
                 Middleware::authenticate();
                 Middleware::checkPermission('read', 'flights');
 
-                $page = (int)($_GET['page'] ?? 1);
-                $limit = (int)($_GET['limit'] ?? 50);
+                $page = max(1, (int)($_GET['page'] ?? 1));
+                $limit = min(100, max(1, (int)($_GET['limit'] ?? 50)));
                 $offset = ($page - 1) * $limit;
 
                 $filters = [];
@@ -124,7 +124,8 @@ class FlightController {
                         'data' => $sanitizedData
                     ]);
                     http_response_code(400);
-                    return ['error' => $e->getMessage()];
+                    error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
                 }
 
             default:
@@ -151,7 +152,8 @@ class FlightController {
                     return $this->flightService->updateFlight($flightId, $data);
                 } catch (Exception $e) {
                     http_response_code(400);
-                    return ['error' => $e->getMessage()];
+                    error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
                 }
 
             default:
@@ -180,7 +182,8 @@ class FlightController {
                     } else {
                         http_response_code(400);
                     }
-                    return ['error' => $e->getMessage()];
+                    error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
                 }
 
             default:
@@ -207,7 +210,8 @@ class FlightController {
                     return $this->flightService->assignGate($flightId, $gate);
                 } catch (Exception $e) {
                     http_response_code(409);
-                    return ['error' => $e->getMessage()];
+                    error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
                 }
 
             case 'assign_terminal':
@@ -226,7 +230,8 @@ class FlightController {
                     return $this->flightService->assignTerminal($flightId, $terminal);
                 } catch (Exception $e) {
                     http_response_code(400);
-                    return ['error' => $e->getMessage()];
+                    error_log('Controller error: ' . $e->getMessage());
+            return ['error' => 'An error occurred. Please try again.'];
                 }
 
             case 'search':

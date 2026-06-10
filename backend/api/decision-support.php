@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/cors.php';
 /**
  * Automated Decision Support API Endpoint
  *
@@ -25,16 +26,7 @@ $conflictDetector = new PredictiveConflictDetection($db, $logger, $spatialIndex,
 $decisionSupport = new AutomatedDecisionSupport($db, $logger, $spatialIndex, $timeSeriesDB, $conflictDetector, $mlOptimizer);
 
 // Set headers
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-
 // Handle preflight OPTIONS request
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
-}
-
 // Get request method and path
 $method = $_SERVER['REQUEST_METHOD'];
 $request = $_SERVER['REQUEST_URI'];
@@ -755,7 +747,7 @@ function acknowledgeDecisionAlert($alertId, $user)
         return ['success' => true, 'message' => 'Alert acknowledged successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -791,7 +783,7 @@ function addDecisionRule($ruleData)
         ];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -841,7 +833,7 @@ function evaluateDecisionModel($modelName, $config)
         ];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -869,7 +861,7 @@ function updateScenario($scenarioId, $updateData)
         return ['success' => true, 'message' => 'Scenario updated successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -897,7 +889,7 @@ function updateRecommendation($recommendationId, $updateData)
         return ['success' => true, 'message' => 'Recommendation updated successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -927,7 +919,7 @@ function updateDecisionRule($ruleId, $updateData)
         return ['success' => true, 'message' => 'Decision rule updated successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -945,7 +937,7 @@ function deleteScenario($scenarioId)
         return ['success' => true, 'message' => 'Scenario deleted successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -963,7 +955,7 @@ function deleteRecommendation($recommendationId)
         return ['success' => true, 'message' => 'Recommendation deleted successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -981,7 +973,7 @@ function deleteDecisionRule($ruleId)
         return ['success' => true, 'message' => 'Decision rule deleted successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -999,6 +991,6 @@ function deleteDecisionAlert($alertId)
         return ['success' => true, 'message' => 'Alert deleted successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }

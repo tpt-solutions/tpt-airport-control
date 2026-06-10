@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/cors.php';
 /**
  * Security Audit API Endpoint
  *
@@ -11,13 +12,7 @@ require_once __DIR__ . '/../src/Logger.php';
 require_once __DIR__ . '/../src/Middleware.php';
 
 // Set content type to JSON
-header('Content-Type: application/json');
-
 // Handle CORS
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-
 // Handle preflight requests
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);

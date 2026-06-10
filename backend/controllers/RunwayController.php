@@ -146,8 +146,8 @@ class RunwayController
 
         $filters = [];
         $pagination = [
-            'page' => (int)($params['page'] ?? 1),
-            'limit' => (int)($params['limit'] ?? 50)
+            'page' => max(1, (int)($params['page'] ?? 1)),
+            'limit' => min(100, max(1, (int)($params['limit'] ?? 50)))
         ];
 
         // Build filters

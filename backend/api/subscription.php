@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/cors.php';
 /**
  * Subscription API for Airport Operations Simulator
  *
@@ -8,15 +9,6 @@
 require_once __DIR__ . '/../src/Config.php';
 require_once __DIR__ . '/../src/Logger.php';
 require_once __DIR__ . '/../services/SubscriptionService.php';
-
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
-}
 
 class SubscriptionAPI
 {
@@ -251,7 +243,7 @@ class SubscriptionAPI
             ]);
         } catch (Exception $e) {
             $this->logger->error("Failed to create subscription", ['error' => $e->getMessage()]);
-            $this->sendError($e->getMessage(), 400);
+            error_log('API error: ' . $e->getMessage()); $this->sendError('An internal error occurred', 400);
         }
     }
 
@@ -284,7 +276,7 @@ class SubscriptionAPI
             ]);
         } catch (Exception $e) {
             $this->logger->error("Failed to upgrade subscription", ['error' => $e->getMessage()]);
-            $this->sendError($e->getMessage(), 400);
+            error_log('API error: ' . $e->getMessage()); $this->sendError('An internal error occurred', 400);
         }
     }
 
@@ -302,7 +294,7 @@ class SubscriptionAPI
             ]);
         } catch (Exception $e) {
             $this->logger->error("Failed to cancel subscription", ['error' => $e->getMessage()]);
-            $this->sendError($e->getMessage(), 400);
+            error_log('API error: ' . $e->getMessage()); $this->sendError('An internal error occurred', 400);
         }
     }
 

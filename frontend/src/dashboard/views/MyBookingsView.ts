@@ -49,8 +49,8 @@ export class MyBookingsView {
                   <div>
                     <p class="text-sm text-gray-500">Actions</p>
                     <div class="space-x-2">
-                      <button class="text-blue-600 hover:text-blue-800 text-sm">View Details</button>
-                      ${booking.status === 'confirmed' ? '<button class="text-green-600 hover:text-green-800 text-sm">Check-in</button>' : ''}
+                      <button class="booking-details-btn text-blue-600 hover:text-blue-800 text-sm" data-booking-id="${booking.id}">View Details</button>
+                      ${booking.status === 'confirmed' ? `<button class="booking-checkin-btn text-green-600 hover:text-green-800 text-sm" data-booking-id="${booking.id}">Check-in</button>` : ''}
                     </div>
                   </div>
                 </div>
@@ -68,7 +68,31 @@ export class MyBookingsView {
   }
 
   setupEventListeners(): void {
-    // Add event listeners for booking actions if needed
-    // This would be expanded based on specific requirements
+    document.querySelectorAll('.booking-details-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = (e.currentTarget as HTMLElement).dataset.bookingId;
+        if (id) this.showBookingDetails(Number(id));
+      });
+    });
+
+    document.querySelectorAll('.booking-checkin-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = (e.currentTarget as HTMLElement).dataset.bookingId;
+        if (id) this.checkIn(Number(id));
+      });
+    });
+  }
+
+  private showBookingDetails(bookingId: number): void {
+    window.dispatchEvent(new CustomEvent('showBookingDetails', { detail: { bookingId } }));
+  }
+
+  private async checkIn(bookingId: number): Promise<void> {
+    try {
+      await this.apiService.callApi(`/api/bookings/${bookingId}/check-in`, 'POST');
+      window.dispatchEvent(new CustomEvent('refreshOverview'));
+    } catch (error) {
+      console.error('Check-in failed:', error);
+    }
   }
 }

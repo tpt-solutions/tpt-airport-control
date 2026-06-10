@@ -142,15 +142,41 @@ class Logger
     /**
      * Create a structured log entry
      */
+    /** Keys whose values are redacted before writing to any log backend. */
+    private static array $scrubKeys = [
+        'password', 'password_hash', 'token', 'access_token', 'refresh_token',
+        'authorization', 'auth', 'secret', 'api_key', 'apikey', 'credit_card',
+        'card_number', 'cvv', 'ssn', 'passport_number', 'passport_no',
+        'date_of_birth', 'dob',
+    ];
+
+    /**
+     * Recursively scrub sensitive keys from a context array before logging.
+     */
+    private function scrubContext(array $context): array
+    {
+        $scrubbed = [];
+        foreach ($context as $key => $value) {
+            if (in_array(strtolower((string) $key), self::$scrubKeys, true)) {
+                $scrubbed[$key] = '[REDACTED]';
+            } elseif (is_array($value)) {
+                $scrubbed[$key] = $this->scrubContext($value);
+            } else {
+                $scrubbed[$key] = $value;
+            }
+        }
+        return $scrubbed;
+    }
+
     private function createLogEntry($level, $message, array $context = [])
     {
         $timestamp = microtime(true);
         $levelName = self::$levelNames[$level] ?? 'UNKNOWN';
 
-        // Merge default context with provided context
-        $fullContext = array_merge($this->defaultContext, $context);
+        // Merge default context with provided context, then scrub PII
+        $fullContext = $this->scrubContext(array_merge($this->defaultContext, $context));
 
-        // Add request context if available
+        // Add request context (no Authorization header — Bearer tokens stay out of logs)
         if (isset($_SERVER)) {
             $fullContext['request'] = [
                 'method' => $_SERVER['REQUEST_METHOD'] ?? 'CLI',

@@ -10,6 +10,15 @@ import { SecurityManagementView } from './views/SecurityManagementView.js';
 import { MyBaggageView } from './views/MyBaggageView.js';
 import type { DashboardView, User } from './types.js';
 
+// Views that require elevated roles; anything not listed allows any authenticated user.
+const VIEW_PERMISSIONS: Partial<Record<DashboardView, string[]>> = {
+  flights:          ['operator', 'admin', 'super_admin'],
+  passengers:       ['operator', 'admin', 'super_admin'],
+  maintenance:      ['operator', 'admin', 'super_admin'],
+  security:         ['operator', 'admin', 'super_admin'],
+  'module-management': ['admin', 'super_admin'],
+};
+
 export class DashboardManager {
   private auth: AuthManager;
   private container: HTMLElement;
@@ -128,7 +137,28 @@ export class DashboardManager {
     }
   }
 
+  navigateTo(view: DashboardView): void {
+    this.handleViewChange(view);
+  }
+
+  private canAccessView(view: DashboardView, user: User): boolean {
+    const allowed = VIEW_PERMISSIONS[view];
+    if (!allowed) return true;
+    return allowed.includes(user.role_name);
+  }
+
   private handleViewChange(view: DashboardView): void {
+    const user = this.auth.getUser();
+    if (user && !this.canAccessView(view, user)) {
+      const content = document.getElementById('dashboard-content');
+      if (content) {
+        const msg = document.createElement('div');
+        msg.className = 'text-center text-red-400 py-16';
+        msg.textContent = 'Access denied. You do not have permission to view this section.';
+        content.replaceChildren(msg);
+      }
+      return;
+    }
     this.currentView = view;
     this.sidebar.updateCurrentView(view);
     this.render();

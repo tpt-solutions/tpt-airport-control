@@ -1,6 +1,4 @@
-/**
- * API Service for handling HTTP requests to the backend
- */
+import { AuthManager } from '../auth.js';
 
 export interface ApiResponse<T = any> {
     success: boolean;
@@ -11,11 +9,9 @@ export interface ApiResponse<T = any> {
 
 export class ApiService {
     private baseUrl: string;
-    private token: string | null = null;
 
     constructor(baseUrl: string = '') {
         this.baseUrl = baseUrl || window.location.origin + '/backend/api';
-        this.token = localStorage.getItem('auth_token');
     }
 
     private async request<T>(
@@ -29,13 +25,15 @@ export class ApiService {
             'Content-Type': 'application/json',
         };
 
-        if (this.token) {
-            headers['Authorization'] = `Bearer ${this.token}`;
+        const token = AuthManager.getInstance().getToken();
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
         }
 
         const config: RequestInit = {
             method,
             headers,
+            credentials: 'include', // send httpOnly JWT cookie
         };
 
         if (data && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
@@ -86,17 +84,15 @@ export class ApiService {
         return this.request<T>('DELETE', endpoint);
     }
 
-    setToken(token: string): void {
-        this.token = token;
-        localStorage.setItem('auth_token', token);
+    setToken(_token: string): void {
+        // No-op: token management is handled by AuthManager + httpOnly cookie.
     }
 
     clearToken(): void {
-        this.token = null;
-        localStorage.removeItem('auth_token');
+        AuthManager.getInstance().clearAuth();
     }
 
     isAuthenticated(): boolean {
-        return this.token !== null;
+        return AuthManager.getInstance().isAuthenticated();
     }
 }

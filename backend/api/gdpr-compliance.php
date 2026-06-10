@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/cors.php';
 /**
  * GDPR Compliance API Endpoint
  *
@@ -18,16 +19,8 @@ $gdprCompliance = new GDPRCompliance($db, $logger);
 $cookieManager = new CookieConsentManager($db, $logger);
 $piaManager = new DPIAManager($db, $logger);
 
-// Set headers
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-
-// Handle preflight OPTIONS request
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
-}
+// Top-level authentication gate — GDPR compliance endpoints are admin-only.
+Middleware::authenticate();
 
 // Get request method and path
 $method = $_SERVER['REQUEST_METHOD'];
@@ -653,7 +646,7 @@ function updateRightsRequest($requestId, $updateData)
         return ['success' => true, 'message' => 'Rights request updated successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -681,7 +674,7 @@ function updateProcessingActivity($activityId, $updateData)
         return ['success' => true, 'message' => 'Processing activity updated successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -709,7 +702,7 @@ function updatePIA($piaId, $updateData)
         return ['success' => true, 'message' => 'PIA updated successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -727,7 +720,7 @@ function deleteConsent($consentId)
         return ['success' => true, 'message' => 'Consent deleted successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }
 
@@ -745,6 +738,6 @@ function deleteRightsRequest($requestId)
         return ['success' => true, 'message' => 'Rights request deleted successfully'];
 
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['success' => false, 'error' => 'An internal error occurred'];
     }
 }

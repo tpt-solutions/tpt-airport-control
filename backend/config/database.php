@@ -43,6 +43,9 @@ namespace TPT\FlightControl\Config {
                     $dbname   = getenv('DB_NAME')     ?: 'flight_control';
                     $username = getenv('DB_USERNAME') ?: 'flight_user';
                     $password = getenv('DB_PASSWORD') ?: 'flight_pass_2025';
+                    if (!getenv('DB_PASSWORD')) {
+                        error_log('SECURITY WARNING: DB_PASSWORD not set — using default fallback. Set DB_PASSWORD before going live.');
+                    }
 
                     self::$connection = new PDO(
                         "pgsql:host=$host;dbname=$dbname",
@@ -54,6 +57,9 @@ namespace TPT\FlightControl\Config {
                             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                         ]
                     );
+                    // Use REPEATABLE READ globally so booking/payment transactions
+                    // see a consistent snapshot and phantom reads cannot cause overbooking.
+                    self::$connection->exec('SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL REPEATABLE READ');
                 }
 
                 require_once __DIR__ . '/../src/RBAC.php';

@@ -12,18 +12,19 @@ class Auth {
 
     public static function init($pdo) {
         self::$pdo = $pdo;
-        
+
         $jwtSecret = getenv('JWT_SECRET');
-        if (!$jwtSecret || $jwtSecret === 'fallback_secret_change_this_immediately_in_production') {
-            error_log('SECURITY WARNING: Using default JWT secret key! This is INSECURE for production!');
-            
-            if (getenv('ENVIRONMENT') === 'production') {
-                throw new Exception('JWT_SECRET environment variable must be set in production');
-            }
-            
-            $jwtSecret = 'fallback_secret_change_this_immediately_in_production';
+        $knownDefault = 'fallback_secret_change_this_immediately_in_production';
+
+        if (!$jwtSecret || $jwtSecret === $knownDefault) {
+            // Never allow a known-default secret — anyone who reads this source can forge tokens.
+            // Fail loudly in all environments so the misconfiguration is caught at startup,
+            // not discovered after a breach.
+            $env = getenv('ENVIRONMENT') ?: 'unknown';
+            error_log("SECURITY ERROR: JWT_SECRET is missing or uses the default value (environment: {$env}). Set a strong random JWT_SECRET before running.");
+            throw new Exception('JWT_SECRET environment variable must be set to a strong random value. See .env.production for reference.');
         }
-        
+
         self::$secretKey = $jwtSecret;
         RBAC::init($pdo);
     }
@@ -159,10 +160,8 @@ class Auth {
 
     private static function resolveSecret(): string {
         if (self::$secretKey) return self::$secretKey;
-        $env = getenv('JWT_SECRET');
-        return ($env && $env !== 'fallback_secret_change_this_immediately_in_production')
-            ? $env
-            : 'fallback_secret_change_this_immediately_in_production';
+        // init() should always be called before validateToken(); if it wasn't, fail loudly.
+        throw new Exception('Auth not initialised — call Auth::init() before using JWT operations.');
     }
 
     public static function validateToken($token) {
@@ -189,16 +188,20 @@ class Auth {
             return $GLOBALS['current_user'];
         }
 
-        // Try to get user from Authorization header
+        // Prefer Authorization header; fall back to httpOnly cookie.
+        $token = null;
         $headers = getallheaders();
         $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? '';
-
-        if (empty($authHeader) || !preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
-            Logger::debug('getCurrentUser() no Authorization header found');
-            return null;
+        if (!empty($authHeader) && preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
+            $token = trim($matches[1]);
+        } elseif (!empty($_COOKIE['jwt_token'])) {
+            $token = $_COOKIE['jwt_token'];
         }
 
-        $token = $matches[1];
+        if (!$token) {
+            Logger::debug('getCurrentUser() no Authorization header or cookie found');
+            return null;
+        }
         Logger::debug('getCurrentUser() token extracted', ['token_length' => strlen($token)]);
         $userData = self::validateToken($token);
 

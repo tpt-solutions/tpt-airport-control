@@ -1,5 +1,6 @@
 <?php
 
+require_once __DIR__ . '/cors.php';
 /**
  * Baggage Tracking API
  *
@@ -11,15 +12,6 @@ require_once '../src/Config.php';
 require_once '../src/ApiResponse.php';
 require_once '../models/BaggageTracking.php';
 require_once '../services/BaggageTrackingService.php';
-
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
-}
 
 // JWT Authentication
 $headers = getallheaders();
