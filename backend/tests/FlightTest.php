@@ -2,7 +2,7 @@
 
 use PHPUnit\Framework\TestCase;
 
-class FlightTest extends TestCase
+class FlightApiTest extends TestCase
 {
     private $pdo;
 

@@ -6,11 +6,11 @@
 require_once __DIR__ . '/../../../models/Flight.php';
 require_once __DIR__ . '/../helpers/TestDataFactory.php';
 
-class FlightTest extends PHPUnit_Framework_TestCase
+class FlightTest extends PHPUnit\Framework\TestCase
 {
     private $testDataFactory;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         $this->testDataFactory = new TestDataFactory();
     }
@@ -91,7 +91,7 @@ class FlightTest extends PHPUnit_Framework_TestCase
             new Flight($invalidData);
             $this->fail('Expected exception for invalid flight number');
         } catch (Exception $e) {
-            $this->assertContains('flight number', strtolower($e->getMessage()));
+            $this->assertStringContainsString('flight number', strtolower($e->getMessage()));
         }
 
         // Test invalid airport codes
@@ -101,7 +101,7 @@ class FlightTest extends PHPUnit_Framework_TestCase
             new Flight($invalidData);
             $this->fail('Expected exception for invalid origin airport');
         } catch (Exception $e) {
-            $this->assertContains('airport', strtolower($e->getMessage()));
+            $this->assertStringContainsString('airport', strtolower($e->getMessage()));
         }
     }
 

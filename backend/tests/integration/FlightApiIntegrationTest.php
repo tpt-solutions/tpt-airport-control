@@ -4,13 +4,13 @@
  */
 
 require_once __DIR__ . '/../../api/flights.php';
-require_once __DIR__ . '/../helpers/TestDataFactory.php';
+require_once __DIR__ . '/../unit/helpers/TestDataFactory.php';
 
-class FlightApiIntegrationTest extends PHPUnit_Framework_TestCase
+class FlightApiIntegrationTest extends PHPUnit\Framework\TestCase
 {
     private $testDataFactory;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         $this->testDataFactory = new TestDataFactory();
 
@@ -21,7 +21,7 @@ class FlightApiIntegrationTest extends PHPUnit_Framework_TestCase
         $_SESSION = ['user_id' => 1, 'role' => 'admin'];
     }
 
-    protected function tearDown()
+    protected function tearDown(): void
     {
         // Clean up after each test
         $_GET = [];

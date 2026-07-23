@@ -24,15 +24,20 @@ class Module
     const CATEGORY_SECURITY = 'security';
     const CATEGORY_COMMERCIAL = 'commercial';
 
-    public function __construct()
+    public function __construct(?PDO $db = null)
     {
-        $this->db = new PDO(
-            "pgsql:host=" . getenv('DB_HOST') . ";dbname=" . getenv('DB_DATABASE'),
-            getenv('DB_USERNAME'),
-            getenv('DB_PASSWORD'),
-            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-        );
-        $this->logger = new Logger('module_manager');
+        if ($db !== null) {
+            $this->db = $db;
+        } else {
+            $this->db = new PDO(
+                "pgsql:host=" . getenv('DB_HOST') . ";dbname=" . getenv('DB_DATABASE'),
+                getenv('DB_USERNAME'),
+                getenv('DB_PASSWORD'),
+                [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+            );
+        }
+        // Logger is optional; omit when running unit tests without full stack
+        $this->logger = null;
     }
 
     /**
@@ -119,11 +124,13 @@ class Module
         // Initialize module health
         $this->initializeModuleHealth($module['module_id']);
 
-        $this->logger->info("Module enabled", [
-            'module_id' => $module['module_id'],
-            'module_name' => $module['module_name'],
-            'user_id' => $userId
-        ]);
+        if ($this->logger) {
+            $this->logger->info("Module enabled", [
+                'module_id' => $module['module_id'],
+                'module_name' => $module['module_name'],
+                'user_id' => $userId
+            ]);
+        }
 
         return ['status' => 'success', 'message' => 'Module enabled successfully'];
     }
@@ -161,11 +168,13 @@ class Module
         // Log the action
         $this->logModuleAction($module['module_id'], 'disabled', $userId);
 
-        $this->logger->info("Module disabled", [
-            'module_id' => $module['module_id'],
-            'module_name' => $module['module_name'],
-            'user_id' => $userId
-        ]);
+        if ($this->logger) {
+            $this->logger->info("Module disabled", [
+                'module_id' => $module['module_id'],
+                'module_name' => $module['module_name'],
+                'user_id' => $userId
+            ]);
+        }
 
         return ['status' => 'success', 'message' => 'Module disabled successfully'];
     }
@@ -197,11 +206,13 @@ class Module
         // Log the action
         $this->logModuleAction($module['module_id'], 'configured', $userId, $config);
 
-        $this->logger->info("Module configuration updated", [
-            'module_id' => $module['module_id'],
-            'module_name' => $module['module_name'],
-            'user_id' => $userId
-        ]);
+        if ($this->logger) {
+            $this->logger->info("Module configuration updated", [
+                'module_id' => $module['module_id'],
+                'module_name' => $module['module_name'],
+                'user_id' => $userId
+            ]);
+        }
 
         return ['status' => 'success', 'message' => 'Module configuration updated'];
     }

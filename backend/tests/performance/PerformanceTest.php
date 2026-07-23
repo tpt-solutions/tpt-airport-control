@@ -7,9 +7,9 @@
  * Ensures modules perform optimally under various load conditions
  */
 
-require_once '../src/ApiResponse.php';
-require_once '../src/Config.php';
-require_once '../src/Logger.php';
+require_once __DIR__ . '/../../src/ApiResponse.php';
+require_once __DIR__ . '/../../src/Config.php';
+require_once __DIR__ . '/../../src/Logger.php';
 
 class PerformanceTest
 {

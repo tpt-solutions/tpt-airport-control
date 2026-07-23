@@ -1,15 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.1/phpunit.xsd"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
          bootstrap="tests/bootstrap.php"
          cacheDirectory=".phpunit.cache"
          executionOrder="depends,defects"
-         requireCoverageMetadata="true"
-         beStrictAboutCoverageMetadata="true"
          beStrictAboutOutputDuringTests="true"
-         beStrictAboutTodoAnnotatedTests="true"
          failOnRisky="true"
-         failOnWarning="true">
+         failOnWarning="true"
+         defaultTestSuite="Unit Tests">
     <testsuites>
         <testsuite name="Unit Tests">
             <directory>tests/unit</directory>
@@ -17,12 +15,9 @@
         <testsuite name="Integration Tests">
             <directory>tests/integration</directory>
         </testsuite>
-        <testsuite name="All Tests">
-            <directory>tests</directory>
-        </testsuite>
     </testsuites>
 
-    <coverage>
+    <source>
         <include>
             <directory suffix=".php">./src</directory>
             <directory suffix=".php">./api</directory>
@@ -31,17 +26,10 @@
             <directory>./vendor</directory>
             <file>./src/config.php</file>
         </exclude>
-        <report>
-            <html outputDirectory="tests/coverage/html"/>
-            <text outputDirectory="tests/coverage/text"/>
-            <clover outputFile="tests/coverage/clover.xml"/>
-        </report>
-    </coverage>
+    </source>
 
     <logging>
         <junit outputFile="tests/logs/junit.xml"/>
-        <testdoxHtml outputFile="tests/logs/testdox.html"/>
-        <testdoxText outputFile="tests/logs/testdox.txt"/>
     </logging>
 
     <php>

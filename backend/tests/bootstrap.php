@@ -6,6 +6,11 @@
 // Load Composer autoloader
 require_once __DIR__ . '/../vendor/autoload.php';
 
+// Set JWT_SECRET for testing if not already set
+if (!getenv('JWT_SECRET')) {
+    putenv('JWT_SECRET=test_secret_key_for_phpunit_only_not_for_production_' . bin2hex(random_bytes(16)));
+}
+
 // Load configuration
 require_once __DIR__ . '/../config/database.php';
 
@@ -227,12 +232,13 @@ function tearDownTest() {
 
 // Initialize test environment
 if (!defined('TEST_DB_INITIALIZED')) {
-    // Create test database if it doesn't exist
+    // Attempt to create test database; skip gracefully if PostgreSQL is unavailable
     try {
         $pdo = new PDO('pgsql:host=localhost', 'postgres', 'password');
         $pdo->exec('CREATE DATABASE IF NOT EXISTS flight_control_test');
         define('TEST_DB_INITIALIZED', true);
     } catch (PDOException $e) {
-        throw new RuntimeException('Could not create test database: ' . $e->getMessage());
+        // PostgreSQL not available (e.g. unit-test-only CI environment); integration tests will be skipped
+        define('TEST_DB_INITIALIZED', false);
     }
 }

@@ -2,11 +2,13 @@
 require_once __DIR__ . '/../repositories/FlightRepository.php';
 require_once __DIR__ . '/../src/Logger.php';
 
+use TPT\FlightControl\Logger;
+
 class FlightService {
     private $flightRepository;
 
-    public function __construct($pdo) {
-        $this->flightRepository = new FlightRepository($pdo);
+    public function __construct($pdo, ?FlightRepository $repository = null) {
+        $this->flightRepository = $repository ?? new FlightRepository($pdo);
     }
 
     public function getFlights($filters = [], $pagination = []) {

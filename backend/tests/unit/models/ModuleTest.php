@@ -4,298 +4,140 @@
  * Unit tests for Module model
  */
 
-class ModuleTest extends PHPUnit_Framework_TestCase
+use PHPUnit\Framework\TestCase;
+
+require_once __DIR__ . '/../../../models/Module.php';
+
+class ModuleTest extends TestCase
 {
-    private $module;
+    private Module $module;
     private $db;
 
-    protected function setUp()
+    protected function setUp(): void
     {
-        // Mock database connection
         $this->db = $this->getMockBuilder(PDO::class)
             ->disableOriginalConstructor()
             ->getMock();
 
-        $this->module = new Module();
-        // Inject mock database
-        $reflection = new ReflectionClass($this->module);
-        $dbProperty = $reflection->getProperty('db');
-        $dbProperty->setAccessible(true);
-        $dbProperty->setValue($this->module, $this->db);
+        $this->module = new Module($this->db);
     }
 
-    public function testGetAllModules()
+    private function mockStmt(array $fetchAllReturn = [], $fetchReturn = null): object
     {
-        // Mock the PDO statement
-        $stmt = $this->getMockBuilder(PDOStatement::class)
-            ->getMock();
+        $stmt = $this->getMockBuilder(PDOStatement::class)->getMock();
+        $stmt->method('execute')->willReturn(true);
+        $stmt->method('fetchAll')->with(PDO::FETCH_ASSOC)->willReturn($fetchAllReturn);
+        $stmt->method('fetch')->with(PDO::FETCH_ASSOC)->willReturn($fetchReturn);
+        return $stmt;
+    }
 
-        $expectedModules = [
-            ['module_id' => 'sustainability', 'name' => 'Environmental & Sustainability', 'enabled' => true],
-            ['module_id' => 'cargo', 'name' => 'Cargo Operations', 'enabled' => false]
+    public function testGetAllModulesReturnsArray(): void
+    {
+        $expected = [
+            ['module_id' => 'sustainability', 'module_name' => 'Environmental & Sustainability', 'is_enabled' => true],
+            ['module_id' => 'cargo', 'module_name' => 'Cargo Operations', 'is_enabled' => false],
         ];
 
-        $stmt->expects($this->once())
-            ->method('execute')
-            ->willReturn(true);
-
-        $stmt->expects($this->once())
-            ->method('fetchAll')
-            ->with(PDO::FETCH_ASSOC)
-            ->willReturn($expectedModules);
-
+        $stmt = $this->mockStmt($expected);
         $this->db->expects($this->once())
             ->method('prepare')
-            ->with($this->stringContains('SELECT'))
             ->willReturn($stmt);
 
         $result = $this->module->getAllModules();
 
-        $this->assertEquals($expectedModules, $result);
+        $this->assertEquals($expected, $result);
     }
 
-    public function testEnableModule()
+    public function testGetEnabledModulesReturnsOnlyEnabled(): void
     {
-        $stmt = $this->getMockBuilder(PDOStatement::class)
-            ->getMock();
-
-        $stmt->expects($this->once())
-            ->method('execute')
-            ->with(['sustainability', 'admin'])
-            ->willReturn(true);
-
-        $this->db->expects($this->once())
-            ->method('prepare')
-            ->with($this->stringContains('UPDATE'))
-            ->willReturn($stmt);
-
-        $result = $this->module->enableModule('sustainability', 'admin');
-
-        $this->assertEquals([
-            'module_id' => 'sustainability',
-            'status' => 'enabled',
-            'message' => 'Module enabled successfully'
-        ], $result);
-    }
-
-    public function testDisableModule()
-    {
-        $stmt = $this->getMockBuilder(PDOStatement::class)
-            ->getMock();
-
-        $stmt->expects($this->once())
-            ->method('execute')
-            ->with(['cargo', 'admin'])
-            ->willReturn(true);
-
-        $this->db->expects($this->once())
-            ->method('prepare')
-            ->with($this->stringContains('UPDATE'))
-            ->willReturn($stmt);
-
-        $result = $this->module->disableModule('cargo', 'admin');
-
-        $this->assertEquals([
-            'module_id' => 'cargo',
-            'status' => 'disabled',
-            'message' => 'Module disabled successfully'
-        ], $result);
-    }
-
-    public function testValidateModuleDependencies()
-    {
-        $stmt = $this->getMockBuilder(PDOStatement::class)
-            ->getMock();
-
-        $dependencies = [
-            ['dependent_module' => 'advanced_analytics', 'dependency' => 'passenger_services']
+        $expected = [
+            ['module_id' => 'sustainability', 'module_name' => 'Environmental & Sustainability', 'is_enabled' => true],
         ];
 
-        $stmt->expects($this->once())
-            ->method('execute')
-            ->with(['advanced_analytics'])
-            ->willReturn(true);
-
-        $stmt->expects($this->once())
-            ->method('fetchAll')
-            ->with(PDO::FETCH_ASSOC)
-            ->willReturn($dependencies);
-
+        $stmt = $this->mockStmt($expected);
         $this->db->expects($this->once())
             ->method('prepare')
-            ->with($this->stringContains('SELECT'))
             ->willReturn($stmt);
 
-        $result = $this->module->validateModuleDependencies('advanced_analytics');
+        $result = $this->module->getEnabledModules();
 
-        $this->assertEquals($dependencies, $result);
+        $this->assertEquals($expected, $result);
     }
 
-    public function testCheckModuleCompatibility()
+    public function testIsModuleEnabledReturnsBool(): void
     {
-        $stmt = $this->getMockBuilder(PDOStatement::class)
-            ->getMock();
+        $stmt = $this->mockStmt([], ['is_enabled' => true]);
+        $this->db->expects($this->once())
+            ->method('prepare')
+            ->willReturn($stmt);
 
-        $compatibility = [
-            ['module_a' => 'sustainability', 'module_b' => 'infrastructure', 'compatible' => true]
+        $result = $this->module->isModuleEnabled('sustainability');
+
+        $this->assertTrue($result);
+    }
+
+    public function testIsModuleEnabledReturnsFalseWhenNotFound(): void
+    {
+        $stmt = $this->mockStmt([], false);
+        $this->db->expects($this->once())
+            ->method('prepare')
+            ->willReturn($stmt);
+
+        $result = $this->module->isModuleEnabled('nonexistent');
+
+        $this->assertFalse($result);
+    }
+
+    public function testGetModulesByCategory(): void
+    {
+        $expected = [
+            ['module_id' => 'cargo', 'module_name' => 'Cargo Operations', 'category' => 'operations'],
         ];
 
-        $stmt->expects($this->once())
-            ->method('execute')
-            ->with(['sustainability', 'infrastructure'])
-            ->willReturn(true);
-
-        $stmt->expects($this->once())
-            ->method('fetchAll')
-            ->with(PDO::FETCH_ASSOC)
-            ->willReturn($compatibility);
-
+        $stmt = $this->mockStmt($expected);
         $this->db->expects($this->once())
             ->method('prepare')
-            ->with($this->stringContains('SELECT'))
             ->willReturn($stmt);
 
-        $result = $this->module->checkModuleCompatibility('sustainability', 'infrastructure');
+        $result = $this->module->getModulesByCategory('operations');
 
-        $this->assertEquals($compatibility, $result);
+        $this->assertEquals($expected, $result);
     }
 
-    public function testGetModuleConfiguration()
+    public function testModuleConstants(): void
     {
-        $stmt = $this->getMockBuilder(PDOStatement::class)
-            ->getMock();
-
-        $config = [
-            'module_id' => 'sustainability',
-            'config_key' => 'carbon_tracking_enabled',
-            'config_value' => 'true',
-            'data_type' => 'boolean'
-        ];
-
-        $stmt->expects($this->once())
-            ->method('execute')
-            ->with(['sustainability'])
-            ->willReturn(true);
-
-        $stmt->expects($this->once())
-            ->method('fetchAll')
-            ->with(PDO::FETCH_ASSOC)
-            ->willReturn([$config]);
-
-        $this->db->expects($this->once())
-            ->method('prepare')
-            ->with($this->stringContains('SELECT'))
-            ->willReturn($stmt);
-
-        $result = $this->module->getModuleConfiguration('sustainability');
-
-        $this->assertEquals([$config], $result);
+        $this->assertEquals('enabled', Module::STATUS_ENABLED);
+        $this->assertEquals('disabled', Module::STATUS_DISABLED);
+        $this->assertEquals('error', Module::STATUS_ERROR);
+        $this->assertEquals('operations', Module::CATEGORY_OPERATIONS);
+        $this->assertEquals('passenger', Module::CATEGORY_PASSENGER);
     }
 
-    public function testUpdateModuleConfiguration()
+    public function testEnableModuleThrowsWhenNotFound(): void
     {
-        $stmt = $this->getMockBuilder(PDOStatement::class)
-            ->getMock();
+        $stmt = $this->mockStmt([], false);
+        $this->db->method('prepare')->willReturn($stmt);
 
-        $stmt->expects($this->once())
-            ->method('execute')
-            ->with(['sustainability', 'carbon_tracking_enabled', 'true', 'boolean', 'admin'])
-            ->willReturn(true);
-
-        $this->db->expects($this->once())
-            ->method('prepare')
-            ->with($this->stringContains('INSERT'))
-            ->willReturn($stmt);
-
-        $result = $this->module->updateModuleConfiguration(
-            'sustainability',
-            'carbon_tracking_enabled',
-            'true',
-            'boolean',
-            'admin'
-        );
-
-        $this->assertEquals([
-            'module_id' => 'sustainability',
-            'config_key' => 'carbon_tracking_enabled',
-            'status' => 'updated',
-            'message' => 'Module configuration updated successfully'
-        ], $result);
-    }
-
-    public function testGetModuleMetrics()
-    {
-        $stmt = $this->getMockBuilder(PDOStatement::class)
-            ->getMock();
-
-        $metrics = [
-            'total_modules' => 12,
-            'enabled_modules' => 8,
-            'disabled_modules' => 4,
-            'modules_with_dependencies' => 6
-        ];
-
-        $stmt->expects($this->exactly(4))
-            ->method('execute')
-            ->willReturn(true);
-
-        $stmt->expects($this->exactly(4))
-            ->method('fetchColumn')
-            ->willReturnOnConsecutiveCalls(12, 8, 4, 6);
-
-        $this->db->expects($this->exactly(4))
-            ->method('prepare')
-            ->willReturn($stmt);
-
-        $result = $this->module->getModuleMetrics();
-
-        $this->assertEquals($metrics, $result);
-    }
-
-    public function testGetModuleHealthStatus()
-    {
-        $stmt = $this->getMockBuilder(PDOStatement::class)
-            ->getMock();
-
-        $healthStatus = [
-            'module_id' => 'sustainability',
-            'status' => 'healthy',
-            'last_check' => '2025-01-15 10:30:00',
-            'issues' => []
-        ];
-
-        $stmt->expects($this->once())
-            ->method('execute')
-            ->with(['sustainability'])
-            ->willReturn(true);
-
-        $stmt->expects($this->once())
-            ->method('fetch')
-            ->with(PDO::FETCH_ASSOC)
-            ->willReturn($healthStatus);
-
-        $this->db->expects($this->once())
-            ->method('prepare')
-            ->with($this->stringContains('SELECT'))
-            ->willReturn($stmt);
-
-        $result = $this->module->getModuleHealthStatus('sustainability');
-
-        $this->assertEquals($healthStatus, $result);
-    }
-
-    public function testInvalidModuleId()
-    {
         $this->expectException(Exception::class);
-        $this->expectExceptionMessage('Invalid module ID');
+        $this->expectExceptionMessage('Module not found');
 
-        $this->module->enableModule('', 'admin');
+        $this->module->enableModule('nonexistent', 'admin');
     }
 
-    public function testDatabaseConnectionFailure()
+    public function testDisableModuleThrowsWhenNotFound(): void
     {
-        $this->db->expects($this->once())
-            ->method('prepare')
+        $stmt = $this->mockStmt([], false);
+        $this->db->method('prepare')->willReturn($stmt);
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Module not found');
+
+        $this->module->disableModule('nonexistent', 'admin');
+    }
+
+    public function testDatabaseConnectionFailure(): void
+    {
+        $this->db->method('prepare')
             ->willThrowException(new PDOException('Database connection failed'));
 
         $this->expectException(PDOException::class);

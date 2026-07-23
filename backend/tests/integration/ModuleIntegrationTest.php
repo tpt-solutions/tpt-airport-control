@@ -4,14 +4,14 @@
  * Integration tests for module interactions and cross-module functionality
  */
 
-class ModuleIntegrationTest extends PHPUnit_Framework_TestCase
+class ModuleIntegrationTest extends PHPUnit\Framework\TestCase
 {
     private $db;
     private $module;
     private $sustainability;
     private $infrastructure;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         // Use actual database for integration testing
         $this->db = new PDO(
@@ -34,7 +34,7 @@ class ModuleIntegrationTest extends PHPUnit_Framework_TestCase
         $this->cleanupTestData();
     }
 
-    protected function tearDown()
+    protected function tearDown(): void
     {
         $this->cleanupTestData();
     }

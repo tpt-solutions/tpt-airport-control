@@ -368,6 +368,14 @@ class TestDataFactory
     }
 
     /**
+     * Instance method alias for createFlight() — used by unit tests
+     */
+    public function createFlightData(array $overrides = []): array
+    {
+        return self::createFlight($overrides);
+    }
+
+    /**
      * Create multiple test flights
      */
     public static function createMultipleFlights(int $count = 3): array

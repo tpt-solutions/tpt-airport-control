@@ -7,10 +7,10 @@
  * Ensures modules are secure against common attack vectors and threats
  */
 
-require_once '../src/ApiResponse.php';
-require_once '../src/Config.php';
-require_once '../src/Logger.php';
-require_once '../src/Auth.php';
+require_once __DIR__ . '/../../src/ApiResponse.php';
+require_once __DIR__ . '/../../src/Config.php';
+require_once __DIR__ . '/../../src/Logger.php';
+require_once __DIR__ . '/../../src/Auth.php';
 
 class SecurityTest
 {

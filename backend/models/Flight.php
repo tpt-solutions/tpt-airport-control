@@ -24,8 +24,26 @@ class Flight {
     private $aircraftRegistration;
     private $aircraftCapacity;
 
+    // Runtime-only fields (not persisted)
+    private $delayMinutes = 0;
+    private $bookedSeats = 0;
+
     public function __construct(array $data = []) {
         $this->hydrate($data);
+        if (!empty($data)) {
+            $this->validate($data);
+        }
+    }
+
+    private function validate(array $data) {
+        if (isset($data['flight_number']) && $data['flight_number'] === '') {
+            throw new InvalidArgumentException('Invalid flight number: flight number cannot be empty');
+        }
+        foreach (['origin', 'destination'] as $field) {
+            if (isset($data[$field]) && !preg_match('/^[A-Z]{3}$/', $data[$field])) {
+                throw new InvalidArgumentException('Invalid airport code: ' . $field . ' must be a 3-letter IATA airport code');
+            }
+        }
     }
 
     public function hydrate(array $data) {
@@ -82,6 +100,10 @@ class Flight {
     public function setAircraftCapacity($aircraftCapacity) { $this->aircraftCapacity = $aircraftCapacity; }
 
     // Business logic methods
+    public function isScheduled() {
+        return $this->status === 'scheduled';
+    }
+
     public function isDelayed() {
         return $this->status === 'delayed';
     }
@@ -94,6 +116,68 @@ class Flight {
         return $this->status === 'arrived';
     }
 
+    public function isCancelled() {
+        return $this->status === 'cancelled';
+    }
+
+    public function isOnTime() {
+        return $this->delayMinutes === 0;
+    }
+
+    public function setDelay(int $minutes) {
+        $this->delayMinutes = $minutes;
+        if ($minutes > 0) {
+            $this->status = 'delayed';
+        }
+    }
+
+    public function getDelayMinutes() {
+        return $this->delayMinutes;
+    }
+
+    public function getEstimatedDepartureTime() {
+        if (!$this->scheduledDeparture) {
+            return null;
+        }
+        return strtotime($this->scheduledDeparture) + ($this->delayMinutes * 60);
+    }
+
+    public function isValid() {
+        return !empty($this->flightNumber) && !empty($this->origin) && !empty($this->destination);
+    }
+
+    public function getCapacity() {
+        return $this->aircraftCapacity;
+    }
+
+    public function getBookedSeats() {
+        return $this->bookedSeats;
+    }
+
+    public function setBookedSeats(int $count) {
+        $this->bookedSeats = $count;
+    }
+
+    public function getAvailableSeats() {
+        return ($this->aircraftCapacity ?? 0) - $this->bookedSeats;
+    }
+
+    public function isFull() {
+        return $this->getAvailableSeats() <= 0;
+    }
+
+    public function canAssignGate() {
+        return !in_array($this->status, ['departed', 'arrived', 'cancelled']);
+    }
+
+    public function canBeCancelled() {
+        return !in_array($this->status, ['departed', 'arrived']);
+    }
+
+    public function equals(Flight $other) {
+        return $this->id === $other->getId();
+    }
+
     public function getDuration() {
         if (!$this->scheduledDeparture || !$this->scheduledArrival) {
             return null;
@@ -103,6 +187,18 @@ class Flight {
         $arrival = new DateTime($this->scheduledArrival);
 
         return $departure->diff($arrival);
+    }
+
+    public function getFlightDuration() {
+        if (!$this->scheduledDeparture || !$this->scheduledArrival) {
+            return null;
+        }
+
+        $departure = new DateTime($this->scheduledDeparture);
+        $arrival = new DateTime($this->scheduledArrival);
+        $diff = $departure->diff($arrival);
+
+        return $diff->h * 60 + $diff->i;
     }
 
     public function toArray() {
